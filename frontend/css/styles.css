@@ -55,10 +55,10 @@ body::before{
 
 .sidebar-toggle{
   display:none;
-  width:34px; height:34px;
+  width:30px; height:30px;
   flex-shrink:0;
   border:1px solid var(--border);
-  border-radius:10px;
+  border-radius:9px;
   background:var(--surface-2);
   align-items:center; justify-content:center; gap:4px;
   padding:0;
@@ -67,7 +67,7 @@ body::before{
 }
 .sidebar-toggle span{
   display:block;
-  width:16px;
+  width:14px;
   height:2px;
   border-radius:999px;
   background:currentColor;
@@ -409,8 +409,38 @@ body::before{
   .topbar{padding:0 14px;}
   .topbar-right{gap:10px;}
   #liveClockWidget{display:none !important;}
-  .sidebar{position:fixed; right:0; top:64px; bottom:0; z-index:60; background:var(--bg); transform:translateX(100%); transition:.25s; width:220px;}
+  .sidebar{
+    position:fixed;
+    right:0;
+    top:64px;
+    bottom:0;
+    z-index:60;
+    width:min(84vw, 300px);
+    background:linear-gradient(180deg, rgba(18,19,22,.98), rgba(13,14,16,.98));
+    border-left:1px solid var(--border);
+    border-right:none;
+    border-radius:24px 0 0 24px;
+    box-shadow:-22px 0 50px rgba(0,0,0,.42);
+    transform:translateX(110%);
+    transition:transform .25s ease;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
   .sidebar.open{transform:translateX(0);}
+  .sidebar-backdrop{
+    position:fixed;
+    inset:64px 0 0 0;
+    background:rgba(0,0,0,.42);
+    backdrop-filter:blur(2px);
+    z-index:55;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .2s ease;
+  }
+  .sidebar-backdrop.open{
+    opacity:1;
+    pointer-events:auto;
+  }
   .content{padding:18px;}
   .chat-list{width:180px;}
   .grid-4, .grid-3, .grid-2{grid-template-columns:1fr;}
@@ -776,11 +806,6 @@ body::before{
 
 /* ── Tablet (≤ 900px) ── */
 @media (max-width: 900px) {
-  /* Sidebar مخفي — يتحول لـ bottom nav */
-  .sidebar {
-    display: none;
-  }
-
   /* Content كامل العرض */
   .content {
     padding: 16px 16px 100px;
@@ -828,6 +853,9 @@ body::before{
   /* Topbar */
   .topbar { padding: 0 12px; height: 52px; }
   .brand { font-size: 15px; }
+  .brand-dot { display:none; }
+  .sidebar-toggle { width:28px; height:28px; border-radius:8px; }
+  .sidebar-toggle span { width:13px; }
   #liveClockWidget { display: none; }
 
   /* Buttons */

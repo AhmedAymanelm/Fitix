@@ -19,16 +19,20 @@ function syncSidebarToggleState(isOpen) {
 
 function openSidebar() {
   const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
   if (!sidebar) return;
   sidebar.classList.add('open');
+  if (backdrop) backdrop.classList.add('open');
   document.body.classList.add('sidebar-open');
   syncSidebarToggleState(true);
 }
 
 function closeSidebar() {
   const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('sidebarBackdrop');
   if (!sidebar) return;
   sidebar.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('open');
   document.body.classList.remove('sidebar-open');
   syncSidebarToggleState(false);
 }
