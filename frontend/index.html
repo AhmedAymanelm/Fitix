@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORM — نظام إدارة الجيم بالذكاء الاصطناعي</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<!-- MediaPipe libraries -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div id="loginWrap">
+  <div class="login-topbar">
+    <div class="brand"><span class="dot"></span>FORM<small>Fitness OS</small></div>
+    <button class="login-role-toggle" id="roleToggleBtn" onclick="toggleLoginRole()">🧑‍💼 أنا ادمن</button>
+  </div>
+  <div class="login-screen">
+    <div class="login-card">
+      <div class="login-icon" id="loginIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </div>
+      <h2 id="loginTitle">تسجيل دخول العميل</h2>
+      <p class="login-sub" id="loginSub">ادخل اليوزر والباسورد اللي دّهملك كابتنك</p>
+      <div class="login-field">
+        <label>اسم المستخدم</label>
+        <input id="loginUser" placeholder="مثال: omar.fit" value="omar.fit">
+      </div>
+      <div class="login-field">
+        <label>كلمة السر</label>
+        <input id="loginPass" type="password" placeholder="••••••••" value="Fx1234!">
+      </div>
+      <button class="btn btn-primary login-btn" onclick="doLogin()">دخول</button>
+      <div class="login-hint" id="loginHint">دي بيانات تجريبية معمولة مسبقاً للعرض — دوس "دخول" على طول</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL (after login) ============ -->
+<div class="app-shell" id="appShell">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span>FORM<small>Fitness OS</small></div>
+    <div class="topbar-right" style="display:flex; align-items:center; gap:15px;">
+      <div id="liveClockWidget" style="font-size:13px; color:var(--text-dim); background:var(--surface-2); padding:6px 12px; border-radius:8px; border:1px solid var(--border); display:flex; gap:10px; align-items:center;">
+          <span id="liveDateStr"></span>
+          <span id="liveTimeStr" style="color:var(--text); font-weight:bold; font-variant-numeric: tabular-nums;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span id="topbarRoleLabel" style="font-size:12px;color:var(--text-dimmer);font-weight:700"></span>
+        <!-- Notification Bell -->
+        <div style="position:relative;" id="notifBellWrap">
+          <button class="notif-bell-btn" id="notifBellBtn" onclick="toggleNotifDropdown()" title="الإشعارات">
+            🔔
+            <span class="notif-badge" id="notifBadge" style="display:none">0</span>
+          </button>
+          <div class="notif-dropdown" id="notifDropdown" style="display:none">
+            <div class="notif-dropdown-header">
+              <h4>🔔 الإشعارات</h4>
+              <button onclick="markAllNotifsRead()">تعليم الكل كمقروء</button>
+            </div>
+            <div class="notif-list" id="notifList">
+              <div class="notif-empty">لا توجد إشعارات</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">تسجيل خروج</button>
+        <div class="avatar" id="topbarAvatar">C</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="shell">
+    <nav class="sidebar" id="sidebar"></nav>
+    <main class="content" id="content"></main>
+  </div>
+</div>
+
+<!-- ============ NOTIFICATION TOAST ============ -->
+<div class="toast" id="toast"></div>
+
+<!-- ============ WIZARD MODAL — إضافة عميل جديد ============ -->
+<div class="wizard-modal-bg" id="wizardModalBg">
+  <div class="wizard-modal">
+    <div class="wizard-header">
+      <h3>➕ إضافة عميل جديد</h3>
+      <button class="wizard-close" onclick="closeWizard()">✕</button>
+    </div>
+    <div class="wizard-steps" id="wizardSteps">
+      <div class="wizard-step-dot active" data-step="1"><div class="wizard-step-num">1</div><span>بيانات الحساب</span></div>
+      <div class="wizard-connector"></div>
+      <div class="wizard-step-dot" data-step="2"><div class="wizard-step-num">2</div><span>الاشتراك</span></div>
+      <div class="wizard-connector"></div>
+      <div class="wizard-step-dot" data-step="3"><div class="wizard-step-num">3</div><span>التمارين</span></div>
+      <div class="wizard-connector"></div>
+      <div class="wizard-step-dot" data-step="4"><div class="wizard-step-num">4</div><span>الصحة والأدوية</span></div>
+    </div>
+    <div class="wizard-body">
+      <!-- Step 1: Account Info -->
+      <div class="wizard-step-panel active" id="wizStep1">
+        <div class="wiz-section-title">بيانات الحساب</div>
+        <div class="field-row">
+          <div class="field"><label>الاسم بالكامل *</label><input id="wiz_full_name" placeholder="مثال: محمود عادل" class="settings-input" style="width:100%"></div>
+          <div class="field"><label>رقم التليفون</label><input id="wiz_phone" placeholder="01xxxxxxxxx" class="settings-input" style="width:100%"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>اسم المستخدم *</label><input id="wiz_username" placeholder="omar.fit" class="settings-input" style="width:100%"></div>
+          <div class="field"><label>كلمة السر *</label><input id="wiz_password" type="text" placeholder="كلمة السر" class="settings-input" style="width:100%"></div>
+        </div>
+        <div class="field-row triple">
+          <div class="field"><label>الوزن (كجم)</label><input id="wiz_weight" type="number" placeholder="70" class="settings-input" style="width:100%"></div>
+          <div class="field"><label>الطول (سم)</label><input id="wiz_height" type="number" placeholder="175" class="settings-input" style="width:100%"></div>
+          <div class="field"><label>العمر</label><input id="wiz_age" type="number" placeholder="25" class="settings-input" style="width:100%"></div>
+        </div>
+        <div class="wiz-section-title">الجنس</div>
+        <div class="wiz-radio-group" id="wiz_gender_group">
+          <button class="wiz-radio-btn" onclick="wizSelect('gender','ذكر',this)">👨 ذكر</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('gender','أنثى',this)">👩 أنثى</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Subscription -->
+      <div class="wizard-step-panel" id="wizStep2">
+        <div class="wiz-section-title">نوع الخدمة</div>
+        <div class="wiz-radio-group" id="wiz_service_group">
+          <button class="wiz-radio-btn" onclick="wizSelect('service_type','nutrition',this)">🥗 تغذية فقط</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('service_type','nutrition_fitness',this)">🥗💪 تغذية + فيتنس</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('service_type','gym_workout',this)">🏋️ جيم + تمارين</button>
+        </div>
+        <div class="wiz-section-title">نوع الاشتراك</div>
+        <div class="wiz-radio-group" id="wiz_sub_type_group">
+          <button class="wiz-radio-btn" onclick="wizSelect('subscription_type','شهري',this)">📅 شهري</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('subscription_type','ربع سنوي',this)">📅 ربع سنوي</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('subscription_type','نصف سنوي',this)">📅 نصف سنوي</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('subscription_type','سنوي',this)">📅 سنوي</button>
+        </div>
+        <div class="wiz-section-title">الهدف</div>
+        <div class="wiz-radio-group" id="wiz_goal_group">
+          <button class="wiz-radio-btn" onclick="wizSelect('goal','تنشيف',this)">🔥 تنشيف</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('goal','تضخيم',this)">💪 تضخيم</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('goal','لياقة',this)">🏃 لياقة</button>
+          <button class="wiz-radio-btn" onclick="wizSelect('goal','صيانة',this)">⚖️ صيانة</button>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>تاريخ بداية الاشتراك</label><input id="wiz_sub_start" type="date" class="settings-input" style="width:100%"></div>
+          <div class="field"><label>تاريخ نهاية الاشتراك</label><input id="wiz_sub_end" type="date" class="settings-input" style="width:100%"></div>
+        </div>
+      </div>
+
+      <!-- Step 3: Workout -->
+      <div class="wizard-step-panel" id="wizStep3">
+        <div class="wiz-toggle-row" onclick="wizToggle('is_active_workout')">
+          <label>🏋️ هل بيتمرن حالياً؟</label>
+          <div class="wiz-toggle" id="toggle_is_active_workout"></div>
+        </div>
+        <div id="workoutDetailsSection" style="display:none">
+          <div class="wiz-section-title">نوع التمرين</div>
+          <div class="wiz-radio-group" id="wiz_workout_type_group">
+            <button class="wiz-radio-btn" onclick="wizSelect('workout_type','أثقال',this)">🏋️ أثقال</button>
+            <button class="wiz-radio-btn" onclick="wizSelect('workout_type','كارديو',this)">🏃 كارديو</button>
+            <button class="wiz-radio-btn" onclick="wizSelect('workout_type','مختلط',this)">⚡ مختلط</button>
+            <button class="wiz-radio-btn" onclick="wizSelect('workout_type','يوجا',this)">🧘 يوجا</button>
+            <button class="wiz-radio-btn" onclick="wizSelect('workout_type','فنون قتالية',this)">🥊 فنون قتالية</button>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>كام يوم في الأسبوع؟</label><input id="wiz_workout_days" type="number" min="1" max="7" placeholder="3" class="settings-input" style="width:100%"></div>
+            <div class="field"><label>نوع الرياضة (تفصيلي)</label><input id="wiz_sport_type" placeholder="مثال: كروسفيت، سباحة..." class="settings-input" style="width:100%"></div>
+          </div>
+          <div class="wiz-section-title">جدول التمرين (مواعيد)</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px" id="workoutScheduleGrid">
+            <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--text-dim);width:60px">الأحد</span><input type="time" class="settings-input workout-time" data-day="الأحد" style="flex:1"></div>
+            <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--text-dim);width:60px">الاثنين</span><input type="time" class="settings-input workout-time" data-day="الاثنين" style="flex:1"></div>
+            <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--text-dim);width:60px">الثلاثاء</span><input type="time" class="settings-input workout-time" data-day="الثلاثاء" style="flex:1"></div>
+            <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--text-dim);width:60px">الأربعاء</span><input type="time" class="settings-input workout-time" data-day="الأربعاء" style="flex:1"></div>
+            <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--text-dim);width:60px">الخميس</span><input type="time" class="settings-input workout-time" data-day="الخميس" style="flex:1"></div>
+            <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--text-dim);width:60px">الجمعة</span><input type="time" class="settings-input workout-time" data-day="الجمعة" style="flex:1"></div>
+            <div style="display:flex;gap:8px;align-items:center;"><span style="font-size:12px;color:var(--text-dim);width:60px">السبت</span><input type="time" class="settings-input workout-time" data-day="السبت" style="flex:1"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Health -->
+      <div class="wizard-step-panel" id="wizStep4">
+        <!-- Injury -->
+        <div class="wiz-toggle-row" onclick="wizToggle('has_injury')">
+          <label>🦴 هل كان عنده إصابة قبل كده؟</label>
+          <div class="wiz-toggle" id="toggle_has_injury"></div>
+        </div>
+        <div id="injuryDetailsSection" style="display:none; margin-bottom:14px">
+          <div class="field"><label>تفاصيل الإصابة</label><input id="wiz_injury_type" placeholder="مثال: تمزق في الرباط الأمامي" class="settings-input" style="width:100%;margin-bottom:8px"></div>
+          <div class="field-row">
+            <div class="field"><label>تاريخ الإصابة</label><input id="wiz_injury_date" type="date" class="settings-input" style="width:100%"></div>
+            <div class="field"><label>هل اتعالج منها؟</label>
+              <div class="wiz-radio-group" id="wiz_injury_recovered_group" style="margin-top:6px">
+                <button class="wiz-radio-btn" onclick="wizSelect('injury_recovered','نعم',this)">✅ نعم</button>
+                <button class="wiz-radio-btn" onclick="wizSelect('injury_recovered','لا',this)">❌ لا</button>
+                <button class="wiz-radio-btn" onclick="wizSelect('injury_recovered','جزئياً',this)">⚠️ جزئياً</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Medication -->
+        <div class="wiz-toggle-row" onclick="wizToggle('takes_medication')">
+          <label>💊 هل بياخد أدوية؟</label>
+          <div class="wiz-toggle" id="toggle_takes_medication"></div>
+        </div>
+        <div id="medicationSection" style="display:none; margin-bottom:14px">
+          <div class="field"><label>اسم الدواء والجرعة</label><input id="wiz_medication_name" placeholder="مثال: ثيروكسين 50mg يومياً" class="settings-input" style="width:100%;margin-bottom:8px"></div>
+          <div class="field">
+            <label>صورة الدواء (اختياري)</label>
+            <input type="file" id="wiz_medication_photo" accept="image/*" style="display:none" onchange="previewMedPhoto(this)">
+            <button class="btn btn-ghost btn-sm" style="width:100%;border-color:var(--border)" onclick="document.getElementById('wiz_medication_photo').click()">📷 رفع صورة الدواء</button>
+            <div id="medPhotoPreview" style="margin-top:8px;display:none"><img id="medPhotoImg" style="height:80px;border-radius:8px;border:1px solid var(--border)"></div>
+          </div>
+        </div>
+
+        <!-- Health Issues -->
+        <div class="wiz-toggle-row" onclick="wizToggle('has_health_issues')">
+          <label>🏥 هل عنده مشاكل صحية؟</label>
+          <div class="wiz-toggle" id="toggle_has_health_issues"></div>
+        </div>
+        <div id="healthIssuesSection" style="display:none; margin-bottom:14px">
+          <div class="field"><label>وصف المشاكل الصحية</label><textarea id="wiz_health_issues" placeholder="مثال: ضغط دم مرتفع، سكر..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-family:Tajawal;resize:vertical;min-height:80px"></textarea></div>
+        </div>
+
+        <!-- Notes -->
+        <div class="field" style="margin-top:16px">
+          <label>ملاحظات إضافية</label>
+          <textarea id="wiz_notes" placeholder="أي ملاحظات إضافية..." style="width:100%;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-family:Tajawal;resize:vertical;min-height:60px"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="wizard-footer">
+      <button class="btn btn-ghost" id="wizPrevBtn" onclick="wizPrev()" style="display:none">السابق</button>
+      <button class="btn btn-primary" id="wizNextBtn" onclick="wizNext()">التالي ←</button>
+      <button class="btn btn-primary" id="wizSubmitBtn" onclick="wizSubmit()" style="display:none;background:var(--lime);color:#000">✅ إنشاء الحساب</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>إضافة عميل جديد</h3>
+    <div class="field"><label>الاسم بالكامل</label><input id="newClientName" placeholder="مثال: محمود عادل"></div>
+    <div class="field"><label>رقم التليفون</label><input placeholder="01xxxxxxxxx"></div>
+    <div class="field"><label>اسم المستخدم (يتولد تلقائي)</label><input id="newClientUser" readonly></div>
+    <div class="field"><label>كلمة السر (تتولد تلقائي)</label><input id="newClientPass" readonly></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">إلغاء</button>
+      <button class="btn btn-primary" style="flex:1" onclick="createClient()">إنشاء الحساب</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="foodModal">
+  <div class="modal">
+    <h3 id="foodModalTitle">إضافة صنف جديد</h3>
+    <div class="field"><label>اسم الصنف</label><input id="fName" placeholder="مثال: صدر دجاج مطبوخ"></div>
+    <div class="field"><label>التصنيف</label><input id="fCategory" placeholder="مثال: لحوم ودواجن"></div>
+    <div class="grid grid-2">
+      <div class="field"><label>السعرات (kcal)</label><input type="number" id="fCalories" value="0"></div>
+      <div class="field"><label>البروتين (g)</label><input type="number" id="fProtein" value="0"></div>
+      <div class="field"><label>الكارب (g)</label><input type="number" id="fCarbs" value="0"></div>
+      <div class="field"><label>الدهون (g)</label><input type="number" id="fFats" value="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeFoodModal()">إلغاء</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveFoodItem()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="confirmModal">
+  <div class="modal" style="width:300px; text-align:center;">
+    <div style="font-size:40px; margin-bottom:10px;">⚠️</div>
+    <h3 id="confirmModalText" style="margin-bottom:20px; line-height:1.5;">هل أنت متأكد؟</h3>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeConfirmModal()">إلغاء</button>
+      <button class="btn btn-primary" style="flex:1; background:var(--coral); color:#fff; border-color:var(--coral);" id="confirmModalBtn">نعم، متأكد</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/core/config.js"></script>
+<script src="js/core/api.js"></script>
+<script src="js/core/ui.js"></script>
+<script src="js/core/router.js"></script>
+<script src="js/core/cv.js"></script>
+<script src="js/core/notifications.js"></script>
+<script src="js/views/admin.js"></script>
+<script src="js/views/user.js"></script>
+<script src="js/main.js"></script>
+<script>
+  function updateLiveClock() {
+    const now = new Date();
+    const days = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    const dStr = days[now.getDay()] + ' ' + now.toLocaleDateString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric' });
+    const tStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const elDate = document.getElementById('liveDateStr');
+    const elTime = document.getElementById('liveTimeStr');
+    if(elDate) elDate.innerText = dStr;
+    if(elTime) elTime.innerText = tStr;
+  }
+  setInterval(updateLiveClock, 1000);
+  updateLiveClock();
+</script>
+</body>
+</html>

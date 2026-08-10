@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Environment & Secrets
+.env
+*.env
+.env.*
+
+# Database (SQLite local only)
+*.db
+*.sqlite
+*.sqlite3
+database/
+
+# Uploads (local only — use Cloudinary in production)
+backend/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log

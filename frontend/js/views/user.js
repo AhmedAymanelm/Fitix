@@ -1,0 +1,1334 @@
+/* ---- User Dashboard (Today's Workout) ---- */
+views['u-dash'] = async () => {
+  const data = await apiFetch('/workouts/today');
+  
+  if (!data.exercises || data.exercises.length === 0) {
+    return `<div class="page-head"><h1>تمارين النهاردة</h1><p>مفيش تمارين مخصصة ليك النهاردة، تقدر تريح!</p></div>`;
+  }
+  
+  // State Management
+  const todayDate = new Date().toISOString().split('T')[0];
+  const currentExIds = data.exercises.map(ex => ex.id).join(',');
+  
+  let stateStr = localStorage.getItem('workoutState');
+  let state = stateStr ? JSON.parse(stateStr) : null;
+  
+  if (!state || state.plan_id !== data.plan_id || state.date !== todayDate || state.ex_ids !== currentExIds) {
+    state = { plan_id: data.plan_id, date: todayDate, ex_ids: currentExIds, completed_sets: {}, partial_sets: {} };
+    localStorage.setItem('workoutState', JSON.stringify(state));
+  }
+  
+  window.currentWorkoutState = state;
+  window.currentWorkoutData = data.exercises;
+  
+  // Calculate if the entire workout is already finished based on state
+  let isAllFinished = false;
+  if (data.exercises.length > 0) {
+      isAllFinished = data.exercises.every(ex => {
+          let comp = state.completed_sets[ex.id] || [];
+          return comp.length >= ex.sets;
+      });
+  }
+
+  // Automatic sync makes manual buttons obsolete.
+
+  if (!data.plan_id) {
+    return `
+    <div class="page-head" style="margin-bottom: 20px;">
+      <h1 style="margin-bottom:5px;">يوم راحة 🧘‍♂️</h1>
+      <p style="color:var(--text-dim); margin:0;">${data.plan_name}</p>
+    </div>
+    <div style="text-align:center; padding:50px 20px; background:var(--surface-2); border:1px solid var(--border); border-radius:16px;">
+        <div style="font-size:60px; margin-bottom:15px;">😴</div>
+        <h2 style="color:var(--text); margin-bottom:10px;">استمتع بيومك!</h2>
+        <p style="color:var(--text-dim);">ليس لديك أي تمارين مخصصة لليوم. الراحة جزء مهم جداً من الاستشفاء والتطور العضلي.</p>
+    </div>
+    `;
+  }
+
+  return `
+  <div class="page-head" style="margin-bottom: 20px;">
+    <h1 style="margin-bottom:5px;">تمارين النهاردة 🔥</h1>
+    <p style="color:var(--text-dim); margin:0;">خطة اليوم: ${data.plan_name}</p>
+  </div>
+  
+  <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px; padding-bottom:10px; width:100%;">
+    ${data.exercises.map((ex, index) => {
+      let setRows = '';
+      let exCompletedSets = state.completed_sets[ex.id] || [];
+      
+      for (let i = 1; i <= ex.sets; i++) {
+          const isDone = exCompletedSets.includes(i);
+          const partialInfo = (state.partial_sets && state.partial_sets[ex.id]) ? state.partial_sets[ex.id].find(s => s.set === i) : null;
+          
+          let bg = 'background:var(--bg); color:var(--text);';
+          let textStyle = '';
+          let icon = i;
+          let label = `${ex.reps} عادي`;
+          
+          if (partialInfo) {
+              bg = 'background:var(--coral); color:#fff; border:none;';
+              icon = '⏱';
+              label = `ناقص ${partialInfo.timeLeft}s`;
+          } else if (isDone) {
+              bg = 'background:var(--lime); color:#000; border:none;';
+              textStyle = 'text-decoration:line-through; opacity:0.5;';
+              icon = '✓';
+          }
+          
+          setRows += `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:14px; color:var(--text); ${textStyle}">
+              <div style="flex:1; display:flex; justify-content:center;">
+                <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border:1px solid var(--border); border-radius:6px; font-weight:bold; ${bg} font-size:13px;" title="${partialInfo ? 'لم يكمل الوقت: باقي ' + partialInfo.timeLeft + ' ثانية' : ''}">${icon}</span>
+              </div>
+              <div style="flex:1; text-align:center;">${label}</div>
+              <div style="flex:1; text-align:center;">${ex.weight}</div>
+              <div style="flex:1; text-align:center; color:var(--text-dim);">${ex.rest_seconds}s</div>
+          </div>
+          `;
+      }
+      
+      const imgUrl = ex.video_url || ex.gif_url;
+      
+      return `
+      <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column;">
+        <div style="padding:20px 20px 15px 20px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="flex:1; padding-left:15px;">
+            <h2 style="margin:0 0 5px 0; font-size:18px; color:var(--text); font-family:sans-serif">${ex.name}</h2>
+            <div style="color:var(--text-dim); font-size:13px;">${ex.muscle_group ? ex.muscle_group.replace(/,/g, ' • ') : 'عام'}</div>
+          </div>
+          ${imgUrl ? `<img src="${imgUrl}" style="width:90px; height:90px; border-radius:10px; object-fit:contain; border:1px solid var(--border); background:#fff; flex-shrink:0; cursor:pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'" onclick="openImageModal('${imgUrl}')" title="اضغط لتكبير الصورة">` : `<div style="width:90px; height:90px; border-radius:10px; border:1px solid var(--border); background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:32px; flex-shrink:0;">🏋️</div>`}
+        </div>
+        
+        <div style="padding:0 20px 20px 20px; flex:1; display:flex; flex-direction:column;">
+          <div style="display:flex; justify-content:space-between; padding-bottom:12px; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-dim); font-weight:bold;">
+            <div style="flex:1; text-align:center;">المجموعات</div>
+            <div style="flex:1; text-align:center;">عدات</div>
+            <div style="flex:1; text-align:center;">الوزن (كجم)</div>
+            <div style="flex:1; text-align:center;">راحة</div>
+          </div>
+          
+          <div style="flex:1;">
+            ${setRows}
+          </div>
+          
+          <div style="margin-top:20px;">
+            <button class="btn btn-ghost" style="width:100%; color:var(--primary); font-weight:bold; border:1px solid var(--primary); padding:10px; border-radius:8px" onclick="window.currentExerciseIndex=${index}; goView('u-active-workout')">بدء التمرين 🚀</button>
+          </div>
+        </div>
+      </div>
+      `;
+    }).join('')}
+  </div>
+  `;
+}
+
+window.submitWorkoutLog = async function(isCompleted, silent = false) {
+    const state = window.currentWorkoutState;
+    if (!state || !state.plan_id) return silent ? null : toast('لا يوجد خطة حالية');
+    
+    // Format session_data for API
+    let session_data = [];
+    for (const exId in state.completed_sets) {
+        session_data.push({
+            exercise_id: parseInt(exId),
+            completed_sets: state.completed_sets[exId],
+            partial_sets: state.partial_sets ? state.partial_sets[exId] || [] : [],
+            skipped_rests: state.skipped_rests ? state.skipped_rests[exId] || [] : []
+        });
+    }
+    
+    try {
+        await apiFetch('/workouts/log', {
+            method: 'POST',
+            body: JSON.stringify({
+                plan_id: state.plan_id,
+                is_completed: isCompleted,
+                session_data: session_data
+            })
+        });
+        
+        if (!silent) {
+            localStorage.removeItem('workoutState');
+            toast('تم حفظ سجل التدريب بنجاح');
+            goView('u-dash');
+        }
+    } catch(e) {
+        if (!silent) toast('حدث خطأ أثناء حفظ السجل');
+    }
+}
+
+
+window.openUserExerciseModal = function(exStr) {
+  const ex = JSON.parse(decodeURIComponent(exStr));
+  let m = document.getElementById('userExModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'userExModal';
+    document.body.appendChild(m);
+  }
+  
+  const imgUrl = ex.video_url || ex.gif_url;
+  const mediaHtml = imgUrl ? `<img src="http://localhost:8000${imgUrl}" style="width:100%; max-height:280px; object-fit:contain; background:#fff; border-bottom:1px solid var(--border);">` : `<div style="width:100%; height:200px; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:40px;">🏋️</div>`;
+  
+  let setRows = '';
+  for (let i = 1; i <= ex.sets; i++) {
+      setRows += `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:14px; color:var(--text);">
+          <div style="flex:1; display:flex; justify-content:center;">
+            <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border:1px solid var(--border); border-radius:6px; font-weight:bold; background:var(--surface-2); color:var(--text); font-size:13px;">${i}</span>
+          </div>
+          <div style="flex:1; text-align:center;">${ex.reps} عادي</div>
+          <div style="flex:1; text-align:center;">${ex.weight}</div>
+          <div style="flex:1; text-align:center; color:var(--text-dim);">${ex.rest_seconds}s</div>
+      </div>
+      `;
+  }
+  
+  m.innerHTML = `
+  <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;justify-content:center;align-items:flex-end; padding:15px; padding-bottom:max(15px, env(safe-area-inset-bottom));">
+    <div style="background:var(--surface-2); border-radius:24px; width:100%; max-width:500px; max-height:90vh; overflow-y:auto; border:1px solid var(--border); position:relative; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+      <button onclick="document.getElementById('userExModal').style.display='none'" style="position:absolute; top:15px; left:15px; background:rgba(0,0,0,0.6); color:#fff; border:none; width:35px; height:35px; border-radius:50%; font-size:18px; cursor:pointer; z-index:10; display:flex; justify-content:center; align-items:center;">✕</button>
+      
+      ${mediaHtml}
+      
+      <div style="padding:25px 20px;">
+        <h2 style="margin:0 0 8px 0; font-size:22px; color:var(--text); text-align:center;">${ex.name}</h2>
+        <div style="color:var(--primary); font-size:14px; text-align:center; margin-bottom:25px;">${ex.muscle_group ? ex.muscle_group.replace(/,/g, ' • ') : 'تمرين عام'}</div>
+        
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:16px; padding:0 15px; margin-bottom:25px;">
+          <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-dim); font-weight:bold;">
+            <div style="flex:1; text-align:center;">المجموعات</div>
+            <div style="flex:1; text-align:center;">عدات</div>
+            <div style="flex:1; text-align:center;">الوزن (كجم)</div>
+            <div style="flex:1; text-align:center;">راحة</div>
+          </div>
+          ${setRows}
+        </div>
+        
+        <button class="btn btn-primary" style="width:100%; padding:15px; font-size:16px; font-weight:bold; border-radius:14px;" onclick="document.getElementById('userExModal').style.display='none'; window.currentExerciseId=${ex.id}; goView('u-ex-detail')">بدء التمرين (مؤقت الراحة)</button>
+      </div>
+    </div>
+  </div>
+  <style>
+    @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  </style>
+  `;
+  m.style.display = 'block';
+};
+
+window.openImageModal = function(url) {
+  let m = document.getElementById('imageModal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'imageModal';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:99999; display:flex; justify-content:center; align-items:center; flex-direction:column; padding:20px; cursor:zoom-out; animation: fadeIn 0.2s ease;" onclick="this.parentElement.style.display='none'">
+      <button style="position:absolute; top:25px; left:25px; background:rgba(255,255,255,0.1); border:none; color:white; font-size:24px; width:45px; height:45px; border-radius:50%; cursor:pointer; display:flex; justify-content:center; align-items:center;">&times;</button>
+      <img src="${url}" style="max-width:100%; max-height:85vh; border-radius:16px; background:#fff; object-fit:contain; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    </div>
+    <style>
+      @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+  `;
+  m.style.display = 'block';
+};
+
+/* ---- User Exercise Detail (Timer) ---- */
+/* ---- User Guided Workout Flow ---- */
+views['u-active-workout'] = () => {
+  return `
+  <div class="page-head" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <div>
+      <h1 style="margin-bottom:5px; font-size:22px;">جاري التدريب 🔥</h1>
+      <p style="margin:0; font-size:14px; color:var(--text-dim);" id="flowExSubtitle">يرجى الانتظار...</p>
+    </div>
+  </div>
+  
+  <div id="flowMediaContainer" style="display:flex; justify-content:center; margin-bottom:30px; width:100%; min-height:200px;">
+    <!-- Media populated by JS -->
+  </div>
+
+  <div class="timer-box" id="flowContainer" style="max-width:400px; margin:0 auto; background:var(--surface-2); border:1px solid var(--border); border-radius:16px; padding:20px;">
+    <!-- Populated by JS -->
+  </div>
+  `;
+};
+
+let exFlow = {
+  exIndex: 0,
+  currentSet: 1,
+  phase: 'exercise',
+  timeLeft: 60,
+  interval: null,
+  timeTaken: 0,
+  maxExerciseTime: 60
+};
+
+function initFns_u_active_workout(){
+  if (!window.currentWorkoutData || window.currentWorkoutData.length === 0 || window.currentExerciseIndex === undefined) {
+      toast('لا توجد تمارين محددة!');
+      goView('u-dash');
+      return;
+  }
+  
+  exFlow.exIndex = window.currentExerciseIndex;
+  const ex = window.currentWorkoutData[exFlow.exIndex];
+  
+  const state = window.currentWorkoutState || JSON.parse(localStorage.getItem('workoutState') || '{"completed_sets":{}}');
+  let completed = state.completed_sets[ex.id] || [];
+  
+  if (completed.length >= ex.sets) {
+      toast('هذا التمرين مكتمل بالفعل! 🎉');
+      goView('u-dash');
+      return;
+  }
+  
+  exFlow.currentSet = completed.length + 1;
+  startPhase('exercise');
+}
+
+window.initFns = { 'u-active-workout': initFns_u_active_workout };
+
+function startPhase(phase) {
+  const ex = window.currentWorkoutData[exFlow.exIndex];
+  exFlow.phase = phase;
+  exFlow.timeTaken = 0;
+  
+  if (phase === 'exercise') {
+    exFlow.timeLeft = exFlow.maxExerciseTime;
+  } else {
+    exFlow.timeLeft = ex.rest_seconds || 45;
+  }
+  
+  renderFlowUI();
+  
+  if(exFlow.interval) clearInterval(exFlow.interval);
+  exFlow.interval = setInterval(() => {
+    exFlow.timeLeft--;
+    exFlow.timeTaken++;
+    updateFlowTimerDisp();
+    if(exFlow.timeLeft <= 0) {
+      clearInterval(exFlow.interval);
+      handlePhaseEnd(true); // true means it auto-completed
+    }
+  }, 1000);
+}
+
+function updateFlowTimerDisp() {
+  const d = document.getElementById('flowTimer');
+  if(d) {
+    let m = Math.floor(exFlow.timeLeft / 60);
+    let s = exFlow.timeLeft % 60;
+    d.innerText = (m < 10 ? '0'+m : m) + ':' + (s < 10 ? '0'+s : s);
+  }
+}
+
+function renderFlowUI() {
+  const ex = window.currentWorkoutData[exFlow.exIndex];
+  
+  // Update Header and Media
+  const sub = document.getElementById('flowExSubtitle');
+  if (sub) sub.innerText = `التمرين ${exFlow.exIndex + 1} من ${window.currentWorkoutData.length}: ${ex.name}`;
+  
+  const media = document.getElementById('flowMediaContainer');
+  if (media) {
+      if (exFlow.phase === 'rest') {
+          const phrases = [
+              "خد بريك يا وحش! 🦍",
+              "عاش يا بطل! خد نفسك واستعد 🚀",
+              "راحة محارب، متطولش! ⚔️",
+              "وحش الجيم! ريح ثواني وارجع أقوى 🔥",
+              "ممتاز جداً! اشرب مياه وخد نفسك 💧"
+          ];
+          const randomPhrase = phrases[Math.floor(Math.random() * phrases.length)];
+          media.innerHTML = `
+              <div style="width:100%; max-width:280px; height:280px; background:linear-gradient(135deg, var(--surface-2), var(--surface-3)); border:1px solid var(--border); border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; box-shadow: 0 4px 20px rgba(0,0,0,0.4);">
+                  <div style="font-size:60px; margin-bottom:15px; animation: bounce 2s infinite;">🧘‍♂️</div>
+                  <h3 style="color:var(--gold); font-size:22px; line-height:1.4;">${randomPhrase}</h3>
+              </div>
+          `;
+      } else {
+          const imgUrl = ex.video_url || ex.gif_url;
+          if (imgUrl) {
+              media.innerHTML = `<img src="${imgUrl}" style="width:100%; max-width:280px; max-height:280px; height:auto; border-radius:16px; object-fit:contain; background:#fff; border:1px solid var(--border); box-shadow: 0 4px 20px rgba(0,0,0,0.4);">`;
+          } else {
+              media.innerHTML = `<div style="width:100%; max-width:280px; height:200px; background:var(--surface-2); border:1px solid var(--border); border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center;"><div style="font-size:40px; margin-bottom:10px;">🏋️</div><div style="color:var(--text-dim);">الصورة غير متوفرة</div></div>`;
+          }
+      }
+  }
+
+  // Update Container
+  const container = document.getElementById('flowContainer');
+  if (!container) return;
+  
+  if (exFlow.phase === 'exercise') {
+    container.innerHTML = `
+        <div style="text-align:center; margin-bottom:15px;">
+            <span style="background:var(--primary); color:#000; padding:5px 15px; border-radius:20px; font-weight:bold; font-size:14px;">أداء المجموعة ${exFlow.currentSet} من ${ex.sets}</span>
+        </div>
+        <div style="text-align:center; color:var(--text-dim); font-size:14px; margin-bottom:5px;">وقت الأداء المتبقي</div>
+        <div id="flowTimer" style="font-size:48px; font-weight:bold; text-align:center; color:var(--primary); font-family:monospace; margin-bottom:15px;">00:00</div>
+        
+        <div style="text-align:center; margin-bottom:20px; font-size:16px; font-weight:bold; color:var(--text);">
+            الوزن: ${ex.weight || 'عادي'} | العدات: ${ex.reps}
+        </div>
+        
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            <button class="btn btn-primary" style="padding:15px; border-radius:12px; font-weight:bold; font-size:16px; background:var(--lime); color:#000; box-shadow: 0 4px 15px rgba(204,255,0,0.3);" onclick="handlePhaseEnd(false)">✅ إنهاء المجموعة</button>
+        </div>
+    `;
+  } else {
+    container.innerHTML = `
+        <div style="text-align:center; margin-bottom:15px;">
+            <span style="background:var(--surface-3); color:var(--text); padding:5px 15px; border-radius:20px; font-weight:bold; font-size:14px;">استعد للمجموعة ${exFlow.currentSet} من ${ex.sets}</span>
+        </div>
+        <div style="text-align:center; color:var(--text-dim); font-size:14px; margin-bottom:5px;">وقت الراحة</div>
+        <div id="flowTimer" style="font-size:48px; font-weight:bold; text-align:center; color:var(--gold); font-family:monospace; margin-bottom:15px;">00:00</div>
+        
+        <button class="btn btn-ghost" style="width:100%; padding:15px; border-radius:12px; font-weight:bold; border:1px solid var(--border);" onclick="handlePhaseEnd(false)">تخطي الراحة ⏭</button>
+    `;
+  }
+  updateFlowTimerDisp();
+}
+
+window.handlePhaseEnd = function(isAutoCompleted) {
+  const ex = window.currentWorkoutData[exFlow.exIndex];
+  
+  if (exFlow.phase === 'exercise') {
+    const state = window.currentWorkoutState || JSON.parse(localStorage.getItem('workoutState') || '{"completed_sets":{}, "partial_sets":{}}');
+    if (!state.completed_sets) state.completed_sets = {};
+    if (!state.partial_sets) state.partial_sets = {};
+    if (!state.completed_sets[ex.id]) state.completed_sets[ex.id] = [];
+    if (!state.partial_sets[ex.id]) state.partial_sets[ex.id] = [];
+
+    // Manual or Auto completion in exercise phase are both treated as perfect sets.
+    // The timer is just a stopwatch for reps.
+    if (!state.completed_sets[ex.id].includes(exFlow.currentSet)) {
+        state.completed_sets[ex.id].push(exFlow.currentSet);
+        localStorage.setItem('workoutState', JSON.stringify(state));
+        window.currentWorkoutState = state;
+        submitWorkoutLog(false, true); // Auto-sync
+    }
+    
+    progressToNextSetOrEnd(ex);
+  } else {
+    // Rest ended (either auto or skipped)
+    if (!isAutoCompleted) {
+        const state = window.currentWorkoutState || JSON.parse(localStorage.getItem('workoutState') || '{"completed_sets":{}, "partial_sets":{}, "skipped_rests":{}}');
+        if (!state.skipped_rests) state.skipped_rests = {};
+        if (!state.skipped_rests[ex.id]) state.skipped_rests[ex.id] = [];
+        state.skipped_rests[ex.id].push({set: exFlow.currentSet - 1, timeLeft: exFlow.timeLeft});
+        localStorage.setItem('workoutState', JSON.stringify(state));
+        window.currentWorkoutState = state;
+        submitWorkoutLog(false, true); // Auto-sync
+    }
+    startPhase('exercise');
+  }
+}
+
+function progressToNextSetOrEnd(ex) {
+    if (exFlow.currentSet >= ex.sets) {
+        toast('🎉 عاش يا بطل! خلصت التمرين ده.');
+        if(exFlow.interval) clearInterval(exFlow.interval);
+        
+        const state = window.currentWorkoutState;
+        let allDone = true;
+        if (state && window.currentWorkoutData) {
+            for (let e of window.currentWorkoutData) {
+                let comp = state.completed_sets[e.id] || [];
+                if (comp.length < e.sets) {
+                    allDone = false;
+                    break;
+                }
+            }
+        } else {
+            allDone = false;
+        }
+
+        if (allDone) {
+            submitWorkoutLog(true, true); // Auto-sync in background silently
+            finishWorkoutSuccessfully();  // Show trophy screen
+        } else {
+            goView('u-dash'); // Go back to dashboard naturally
+        }
+    } else {
+        exFlow.currentSet++;
+        startPhase('rest');
+    }
+}
+
+// Remove old abort function
+// window.abortExerciseFlow = function() { ... }
+
+function finishWorkoutSuccessfully() {
+    if(exFlow.interval) clearInterval(exFlow.interval);
+    
+    document.getElementById('app').innerHTML = `
+      <div class="page-head" style="text-align:center; padding-top:40px;">
+        <div style="font-size:60px; margin-bottom:20px;">🏆</div>
+        <h1 style="color:var(--lime); margin-bottom:10px;">عاش يا وحش!</h1>
+        <p style="color:var(--text-dim); font-size:16px;">لقد أكملت تدريب اليوم بنجاح وتم تسجيله في تحليلاتك أوتوماتيكياً.</p>
+      </div>
+    `;
+    
+    // Auto-redirect after 3 seconds
+    setTimeout(() => {
+        goView('u-dash');
+    }, 3000);
+}
+
+
+/* ---- User CV Test ---- */
+views['u-cv'] = async () => {
+    let userData = null;
+    try {
+        userData = await apiFetch('/auth/me');
+    } catch (e) {
+        console.error(e);
+    }
+    
+    if (!userData || !userData.cv_access) {
+        return `
+            <div class="page-head"><h1>اختبار اللياقة بالكاميرا (CV)</h1><p>الـ AI هيعدلك العدات ويصلحلك الفورمة وأنت بتتمرن</p></div>
+            <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim); border: 1px solid rgba(255,107,107,0.3)">
+                <div style="font-size:50px;margin-bottom:15px">🔒</div>
+                <h3 style="margin-bottom:10px;color:var(--text)">الخاصية غير مفعلة</h3>
+                <p style="font-size:16px;">لم يتم تفعيل خاصية الكاميرا الذكية لحسابك. <br>يرجى طلب التفعيل من كابتن الجيم.</p>
+            </div>
+        `;
+    }
+
+    return `
+  <style>
+    .cv-select {
+        background-color: rgba(255,255,255,0.05);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.2);
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 16px;
+        cursor: pointer;
+        outline: none;
+        transition: all 0.3s ease;
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23bdff00' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: left 15px center;
+        background-size: 15px;
+        padding-left: 40px; /* space for arrow on the left (RTL) */
+    }
+    .cv-select:hover, .cv-select:focus {
+        border-color: var(--primary);
+        background-color: rgba(189,255,0,0.05);
+        box-shadow: 0 0 15px rgba(189,255,0,0.1);
+    }
+    .cv-select option {
+        background-color: #1a1a1a;
+        color: #fff;
+    }
+    .cv-controls {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+    }
+  </style>
+  <div class="page-head"><h1>اختبار اللياقة بالكاميرا (CV)</h1><p>الـ AI هيعدلك العدات ويصلحلك الفورمة وأنت بتتمرن</p></div>
+  <div class="cv-controls">
+    <select id="exerciseSelect" class="cv-select" style="width: 220px;">
+      <option value="squat">سكوات (Squats)</option>
+    </select>
+    <select id="timerSelect" class="cv-select" style="width: 180px;">
+      <option value="60">دقيقة واحدة</option>
+      <option value="120">دقيقتين</option>
+      <option value="300">5 دقائق</option>
+      <option value="0">وقت مفتوح</option>
+    </select>
+  </div>
+  <div class="cam-box" style="position: relative; overflow: hidden; height: 480px; max-width: 640px; margin: 0 auto; background: #000; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+    <div class="rec-dot" style="position: absolute; top: 15px; right: 15px; z-index: 10;"><i></i> جاري تحليل الحركة</div>
+    
+    <div style="position: absolute; top: 15px; left: 50%; transform: translateX(-50%); z-index: 10; background: rgba(0,0,0,0.6); padding: 5px 15px; border-radius: 20px;">
+      <b id="cvTimerCount" style="color: #fff; font-size: 20px; font-family: monospace;">00:00</b>
+    </div>
+
+    <div class="rep-counter" style="position: absolute; top: 15px; left: 15px; z-index: 10; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 8px;">
+      <b id="cvRepCount" style="color: var(--primary); font-size: 24px;">0</b>
+      <span style="display: block; font-size: 12px; color: #fff;">العدات الصحيحة</span>
+    </div>
+    
+    <video id="cvVideo" style="display: none;"></video>
+    <canvas id="cvCanvas" width="640" height="480" style="width: 100%; height: 100%; object-fit: cover;"></canvas>
+    
+    <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90%; text-align: center;">
+      <div id="cvFeedback" style="background:var(--surface-3); padding:8px 16px; border-radius:8px; font-size:14px; font-weight:700; border:1px solid var(--lime); color:var(--lime); text-shadow: 1px 1px 2px #000;">
+        اختار التمرين واضغط ابدأ الاختبار
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center; margin-top:20px">
+    <button id="startCVBtn" class="btn btn-primary" onclick="startCVTest()">ابدأ الاختبار</button>
+  </div>
+`;
+}
+function renderAnalyticsDashboard(history, workoutHistory = []) {
+  let workoutAnalyticsHtml = '';
+  
+  if (workoutHistory && workoutHistory.length > 0) {
+      let totalTargetSets = 0;
+      let totalPerfectSets = 0;
+      let totalTarget = 0;
+      let totalAttempted = 0;
+      let skippedCounts = {};
+      let totalSkippedRests = 0;
+      
+      workoutHistory.forEach(w => {
+          totalTarget += w.total_exercises || 0;
+          totalAttempted += w.attempted_exercises || 0;
+          
+          if (w.details) {
+              w.details.forEach(ex => {
+                  totalTargetSets += ex.target_sets || 0;
+                  
+                  const completed = ex.completed_sets ? ex.completed_sets.length : 0;
+                  const partials = ex.partial_sets ? ex.partial_sets.length : 0;
+                  const skippedRests = ex.skipped_rests ? ex.skipped_rests.length : 0;
+                  
+                  // A perfect set is completed full time. We penalize for partial sets and skipped rests.
+                  let perfect = completed - partials - (skippedRests * 0.5); // Skipped rest is a half-penalty
+                  if (perfect < 0) perfect = 0;
+                  totalPerfectSets += perfect;
+                  
+                  if (completed === 0 && partials === 0) {
+                      skippedCounts[ex.name] = (skippedCounts[ex.name] || 0) + 1;
+                  }
+                  if (ex.skipped_rests) {
+                      totalSkippedRests += ex.skipped_rests.length;
+                  }
+              });
+          }
+      });
+      
+      const disciplineScore = totalTargetSets > 0 ? Math.round((totalPerfectSets / totalTargetSets) * 100) : 100;
+      const completionRate = totalTarget > 0 ? Math.round((totalAttempted / totalTarget) * 100) : 0;
+      
+      const skippedLeaderboard = Object.entries(skippedCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+          
+      let skippedHtml = '';
+      if (skippedLeaderboard.length > 0) {
+          skippedHtml = `
+          <div class="card" style="padding:20px; background:rgba(255,107,107,0.05); border:1px solid var(--coral); margin-bottom:20px;">
+              <h4 style="color:var(--coral); margin-bottom:10px;">⚠️ التمارين الأكثر تهرباً</h4>
+              <ul style="margin:0; padding-right:20px; color:var(--text);">
+                  ${skippedLeaderboard.map(item => `<li><b>${item[0]}</b>: تم تخطيه ${item[1]} مرات</li>`).join('')}
+              </ul>
+          </div>`;
+      }
+
+      workoutAnalyticsHtml = `
+      <div style="margin-bottom:40px;">
+          <h3 style="color:var(--text); margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+              <span style="font-size:24px;">🏃‍♂️</span> تحليل التمارين والالتزام
+          </h3>
+          <div class="grid grid-3" style="margin-bottom:20px; gap:20px">
+              <div class="card" style="padding:20px; text-align:center; border-bottom:3px solid ${disciplineScore >= 80 ? 'var(--lime)' : 'var(--coral)'}">
+                  <div style="font-size:14px; color:var(--text-dim); margin-bottom:5px;">معدل الانضباط (الالتزام بالوقت)</div>
+                  <div style="font-size:36px; font-weight:bold; color:${disciplineScore >= 80 ? 'var(--lime)' : 'var(--coral)'};">${disciplineScore}%</div>
+              </div>
+              <div class="card" style="padding:20px; text-align:center; border-bottom:3px solid var(--cyan)">
+                  <div style="font-size:14px; color:var(--text-dim); margin-bottom:5px;">معدل أداء التمارين المستهدفة</div>
+                  <div style="font-size:36px; font-weight:bold; color:var(--cyan);">${completionRate}%</div>
+              </div>
+              <div class="card" style="padding:20px; text-align:center; border-bottom:3px solid ${totalSkippedRests > 0 ? 'var(--coral)' : 'var(--lime)'}">
+                  <div style="font-size:14px; color:var(--text-dim); margin-bottom:5px;">إجمالي مرات تخطي الراحة</div>
+                  <div style="font-size:36px; font-weight:bold; color:${totalSkippedRests > 0 ? 'var(--coral)' : 'var(--lime)'};">${totalSkippedRests} <span style="font-size:16px;">مرة</span></div>
+              </div>
+          </div>
+          <div class="grid grid-2" style="margin-bottom:20px; gap:20px">
+              <div class="card" style="padding:20px">
+                  <h3 style="color:var(--primary); margin-bottom:15px">معدل الانضباط الشامل</h3>
+                  <div style="position: relative; height: 250px; width: 100%; display:flex; justify-content:center;">
+                      <canvas id="workoutDoughnutChart"></canvas>
+                  </div>
+              </div>
+              <div class="card" style="padding:20px">
+                  <h3 style="color:var(--cyan); margin-bottom:15px">التمارين المستهدفة مقابل الملعوبة</h3>
+                  <div style="position: relative; height: 250px; width: 100%;">
+                      <canvas id="workoutBarChart"></canvas>
+                  </div>
+              </div>
+          </div>
+          ${skippedHtml}
+          <h4 style="color:var(--text); margin-bottom:15px;">سجل التدريبات الأخير</h4>
+          <div style="display:flex; flex-direction:column; gap:15px;">
+              ${workoutHistory.map(w => {
+                  const d = new Date(w.date);
+                  const isToday = d.toDateString() === new Date().toDateString();
+                  const dateStr = d.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+                  const timeStr = d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                  const bg = w.is_completed ? 'rgba(204, 255, 0, 0.05)' : (isToday ? 'rgba(0, 255, 255, 0.05)' : 'rgba(255, 107, 107, 0.05)');
+                  const border = w.is_completed ? 'var(--lime)' : (isToday ? 'var(--cyan)' : 'var(--coral)');
+                  const statusIcon = w.is_completed ? '✅ أكمل بنجاح' : (isToday ? '⏳ جاري التدريب...' : '🛑 إنهاء مبكر');
+                  
+                  let detailsHtml = '';
+                  if (w.details && w.details.length > 0) {
+                      const partials = [];
+                      w.details.forEach(ex => {
+                          if (ex.partial_sets) {
+                              ex.partial_sets.forEach(ps => {
+                                  partials.push(`تمرين ${ex.name}: نقص ${ps.timeLeft}ث في أداء المجموعة ${ps.set}`);
+                              });
+                          }
+                          if (ex.skipped_rests) {
+                              ex.skipped_rests.forEach(sr => {
+                                  partials.push(`تمرين ${ex.name}: تخطى راحة بعد المجموعة ${sr.set} (وفر ${sr.timeLeft}ث)`);
+                              });
+                          }
+                      });
+                      if (partials.length > 0) {
+                          detailsHtml = `
+                          <div style="margin-top:10px; padding:10px; background:var(--bg); border-radius:8px; font-size:13px; border-right:3px solid var(--coral);">
+                              <div style="color:var(--coral); font-weight:bold; margin-bottom:5px;">تجاوزات الوقت والراحة:</div>
+                              ${partials.map(p => `<div>- ${p}</div>`).join('')}
+                          </div>`;
+                      }
+                  }
+
+                  return `
+                  <div style="background:var(--surface-2); border:1px solid var(--border); border-radius:12px; overflow:hidden;">
+                      <div style="background:${bg}; border-bottom:1px solid ${border}; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+                          <div>
+                              <div style="font-weight:bold; font-size:16px;">${w.plan_name || 'تدريب حر'}</div>
+                              <div style="font-size:12px; color:var(--text-dim);">${dateStr} - ${timeStr}</div>
+                          </div>
+                          <div style="font-weight:bold; color:${w.is_completed ? 'var(--lime)' : 'var(--coral)'}; font-size:14px; background:var(--bg); padding:5px 10px; border-radius:20px; border:1px solid ${border};">
+                              ${statusIcon}
+                          </div>
+                      </div>
+                      <div style="padding:15px;">
+                          <div style="font-size:14px; color:var(--text); margin-bottom:5px;">لعب <b>${w.attempted_exercises || 0}</b> من أصل <b>${w.total_exercises || 0}</b> تمارين مستهدفة</div>
+                          <div style="width:100%; height:8px; background:var(--bg); border-radius:4px; overflow:hidden; margin-bottom:5px;">
+                              <div style="width:${w.total_exercises ? (w.attempted_exercises/w.total_exercises)*100 : 0}%; height:100%; background:var(--cyan);"></div>
+                          </div>
+                          ${detailsHtml}
+                      </div>
+                  </div>
+                  `;
+              }).join('')}
+          </div>
+      </div>
+      <hr style="border:0; border-top:1px solid var(--border); margin:40px 0;">
+      `;
+  } else {
+      workoutAnalyticsHtml = `
+      <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim); margin-bottom:30px;">
+        <div style="font-size:40px;margin-bottom:15px">🏃‍♂️</div>
+        <h3 style="margin-bottom:10px;color:var(--text)">لا يوجد سجل تمارين</h3>
+        <p>لم يقم العميل بأي تدريب حتى الآن.</p>
+      </div>`;
+  }
+
+  let inbodyHtml = '';
+  if (!history || history.length === 0) {
+    inbodyHtml = `
+      <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim)">
+        <div style="font-size:40px;margin-bottom:15px">📈</div>
+        <h3 style="margin-bottom:10px;color:var(--text)">لا توجد بيانات كافية</h3>
+        <p>لا يوجد قراءات InBody مسجلة لعرض التحليلات.</p>
+      </div>`;
+  } else if (history.length < 2) {
+    inbodyHtml = `
+      <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim)">
+        <div style="font-size:40px;margin-bottom:15px;color:var(--gold)">📊</div>
+        <h3 style="margin-bottom:10px;color:var(--text)">قراءة واحدة غير كافية للتحليل</h3>
+        <p>تحتاج إلى قراءتين InBody على الأقل لرسم منحنيات التطور والمقارنة.</p>
+      </div>`;
+  } else {
+    window.currentAnalyticsHistory = history;
+    setTimeout(() => initAnalyticsCharts(), 150);
+
+    let tableRows = history.map(h => `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:12px;color:var(--lime);font-weight:bold">${h.reading_date}</td>
+        <td style="padding:12px" dir="ltr">${h.weight} kg</td>
+        <td style="padding:12px" dir="ltr">${h.body_fat}%</td>
+        <td style="padding:12px" dir="ltr">${h.muscle_mass}%</td>
+      </tr>
+    `).join('');
+
+    inbodyHtml = `
+      <div class="grid grid-2" style="margin-bottom:20px; gap:20px">
+        <!-- Line Chart -->
+        <div class="card" style="padding:20px">
+          <h3 style="color:var(--gold); margin-bottom:15px">التطور الزمني (الوزن والدهون والعضلات)</h3>
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="analyticsLineChart"></canvas>
+          </div>
+        </div>
+        <!-- Bar Chart -->
+        <div class="card" style="padding:20px">
+          <h3 style="color:var(--cyan); margin-bottom:15px">صافي التغير (أول قراءة vs أحدث قراءة)</h3>
+          <div style="position: relative; height: 300px; width: 100%;">
+            <canvas id="analyticsBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card" style="padding:20px; margin-bottom:20px">
+        <h3 style="color:var(--text); margin-bottom:15px">جدول القراءات التفصيلي</h3>
+        <div style="overflow-x:auto">
+          <table style="width:100%; text-align:right; border-collapse:collapse; min-width:500px">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border); color:var(--text-dim)">
+                <th style="padding:12px">التاريخ</th>
+                <th style="padding:12px">الوزن</th>
+                <th style="padding:12px">نسبة الدهون</th>
+                <th style="padding:12px">كتلة العضلات</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  window.currentWorkoutAnalytics = workoutHistory;
+  setTimeout(() => {
+    if (typeof initWorkoutCharts === 'function') initWorkoutCharts();
+  }, 150);
+
+  return workoutAnalyticsHtml + `
+  <h3 style="color:var(--text); margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+      <span style="font-size:24px;">⚖️</span> تحليل القياسات (InBody)
+  </h3>` + inbodyHtml;
+}
+
+let lineChartInstance = null;
+let barChartInstance = null;
+
+function initAnalyticsCharts() {
+  const history = window.currentAnalyticsHistory;
+  if(!history || history.length < 2) return;
+  
+  // Sort history chronologically for charts (oldest first)
+  const sorted = [...history].reverse();
+  const labels = sorted.map(h => h.reading_date);
+  
+  const weightData = sorted.map(h => h.weight);
+  const fatData = sorted.map(h => h.body_fat);
+  const muscleData = sorted.map(h => h.muscle_mass);
+  
+  // Initialize Line Chart
+  const lineCtx = document.getElementById('analyticsLineChart');
+  if(lineCtx) {
+    if(lineChartInstance) lineChartInstance.destroy();
+    lineChartInstance = new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'الوزن (kg)', data: weightData, borderColor: '#ffffff', backgroundColor: 'rgba(255,255,255,0.1)', tension: 0.4 },
+          { label: 'الدهون (%)', data: fatData, borderColor: '#ff6b6b', backgroundColor: 'rgba(255,107,107,0.1)', tension: 0.4 },
+          { label: 'العضلات (%)', data: muscleData, borderColor: '#ccff00', backgroundColor: 'rgba(204,255,0,0.1)', tension: 0.4 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#e0e0e0', font: { family: 'Cairo' } } } },
+        scales: {
+          x: { ticks: { color: '#a0a0a0', font: { family: 'Cairo' } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { ticks: { color: '#a0a0a0', font: { family: 'Cairo' } }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+  
+  // Initialize Bar Chart for Net Change
+  const barCtx = document.getElementById('analyticsBarChart');
+  if(barCtx) {
+    if(barChartInstance) barChartInstance.destroy();
+    const first = sorted[0];
+    const latest = sorted[sorted.length - 1];
+    
+    const wDiff = (latest.weight - first.weight).toFixed(1);
+    const fDiff = (latest.body_fat - first.body_fat).toFixed(1);
+    const mDiff = (latest.muscle_mass - first.muscle_mass).toFixed(1);
+    
+    barChartInstance = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: ['الوزن (kg)', 'الدهون (%)', 'العضلات (%)'],
+        datasets: [{
+          label: 'مقدار التغير',
+          data: [wDiff, fDiff, mDiff],
+          backgroundColor: [
+            wDiff > 0 ? '#ff6b6b' : '#ccff00',
+            fDiff > 0 ? '#ff6b6b' : '#ccff00',
+            mDiff > 0 ? '#ccff00' : '#ff6b6b'
+          ],
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: '#e0e0e0', font: { family: 'Cairo' } }, grid: { display: false } },
+          y: { ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+}
+
+let wLineChart = null;
+let wBarChart = null;
+
+function initWorkoutCharts() {
+  const wHist = window.currentWorkoutAnalytics;
+  if (!wHist || wHist.length === 0) return; // Show even if 1 workout
+  
+  // Use all history for the bar chart so live progress is visible
+  const sorted = [...wHist].reverse();
+  const labels = sorted.map(w => {
+    const d = new Date(w.date);
+    return d.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+  });
+  
+  const targetEx = sorted.map(w => w.total_exercises || 0);
+  const attemptedEx = sorted.map(w => w.attempted_exercises || 0);
+  
+  let chartTargetSets = 0;
+  let chartPerfectSets = 0;
+  
+  wHist.forEach(w => {
+      if (w.details) {
+          w.details.forEach(ex => {
+              chartTargetSets += ex.target_sets || 0;
+              const completed = ex.completed_sets ? ex.completed_sets.length : 0;
+              const partials = ex.partial_sets ? ex.partial_sets.length : 0;
+              const skippedRests = ex.skipped_rests ? ex.skipped_rests.length : 0;
+              let perfect = completed - partials - (skippedRests * 0.5);
+              if (perfect < 0) perfect = 0;
+              chartPerfectSets += perfect;
+          });
+      }
+  });
+
+  const dData = chartTargetSets === 0 ? [1, 0] : [chartPerfectSets, chartTargetSets - chartPerfectSets];
+  
+  const dCtx = document.getElementById('workoutDoughnutChart');
+  if (dCtx) {
+    if (wLineChart) wLineChart.destroy();
+    wLineChart = new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['أداء مثالي', 'تجاوزات وتهرب'],
+        datasets: [{
+          data: dData,
+          backgroundColor: ['#ccff00', '#ff6b6b'],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        cutout: '70%',
+        plugins: { 
+          legend: { position: 'bottom', labels: { color: '#e0e0e0', font: { family: 'Cairo' }, padding: 20 } }
+        }
+      }
+    });
+  }
+  
+  const barCtx = document.getElementById('workoutBarChart');
+  if (barCtx) {
+    if (wBarChart) wBarChart.destroy();
+    wBarChart = new Chart(barCtx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'المستهدفة', data: targetEx, backgroundColor: 'rgba(255, 107, 107, 0.8)', borderRadius: 4 },
+          { label: 'الملعوبة', data: attemptedEx, backgroundColor: 'rgba(0, 242, 254, 0.8)', borderRadius: 4 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { labels: { color: '#e0e0e0', font: { family: 'Cairo' } } } },
+        scales: {
+          x: { ticks: { color: '#a0a0a0', font: { family: 'Cairo', size: 10 } }, grid: { display: false } },
+          y: { ticks: { color: '#a0a0a0', font: { family: 'Cairo' }, stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        }
+      }
+    });
+  }
+}
+
+function renderInBodyDashboard(history) {
+  if (!history || history.length === 0) {
+    return `
+      <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim)">
+        <div style="font-size:40px;margin-bottom:15px">📊</div>
+        <h3 style="margin-bottom:10px;color:var(--text)">لا توجد قراءات مسجلة</h3>
+        <p>لم يقم الكابتن بتسجيل أي قراءة InBody لك حتى الآن.</p>
+      </div>`;
+  }
+
+  const latest = history[0];
+  const first = history[history.length - 1];
+
+  window.currentInBodyHistory = history;
+  setTimeout(() => updateInBodyComparison(), 100);
+
+  return `
+    <div id="inbodyComparisonContainer"></div>
+    
+    <div id="latestInBodyContainer">
+    <div class="grid grid-2">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px">
+            <h3 style="margin:0; color:var(--gold)">القياسات الحيوية</h3>
+            <button class="btn btn-ghost" style="color:var(--coral); padding:2px 8px; font-size:11px" onclick="deleteUserInBody(${latest.id})">مسح</button>
+        </div>
+        <div class="grid grid-2" style="gap:10px">
+          <div class="field"><label>الوزن</label><div class="settings-input" style="width:100%; font-weight:bold">${latest.weight} kg</div></div>
+          <div class="field"><label>مؤشر الكتلة (BMI)</label><div class="settings-input" style="width:100%; font-weight:bold">${latest.bmi || '-'}</div></div>
+          <div class="field"><label>نسبة الدهون (TBF%)</label><div class="settings-input" style="width:100%; color:var(--coral); font-weight:bold">${latest.body_fat}%</div></div>
+          <div class="field"><label>العضلات (SM%)</label><div class="settings-input" style="width:100%; font-weight:bold">${latest.muscle_mass}%</div></div>
+          <div class="field"><label>الدهون الحشوية</label><div class="settings-input" style="width:100%; color:var(--coral)">${latest.vfi || '-'}</div></div>
+          <div class="field"><label>بدون دهون (FFM)</label><div class="settings-input" style="width:100%">${latest.ffm ? latest.ffm+' kg' : '-'}</div></div>
+          <div class="field"><label>كتلة الدهون (FM)</label><div class="settings-input" style="width:100%">${latest.fat_mass ? latest.fat_mass+' kg' : '-'}</div></div>
+          <div class="field"><label>نسبة المياه</label><div class="settings-input" style="width:100%; color:var(--cyan)">${latest.tbw_percent ? latest.tbw_percent+'%' : '-'}</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-bottom:15px; color:var(--cyan)">المعدلات الأيضية</h3>
+        <div class="grid grid-2" style="gap:10px">
+          <div class="field"><label>معدل الحرق (BMR)</label><div class="settings-input" style="width:100%">${latest.bmr || '-'}</div></div>
+          <div class="field"><label>التقييم الإجمالي</label><div class="settings-input" style="width:100%">${latest.score || '-'} / 100</div></div>
+          <div class="field"><label>العمر الحيوي</label><div class="settings-input" style="width:100%">${latest.bio_age || '-'}</div></div>
+        </div>
+        
+        <h3 style="margin-top:20px; margin-bottom:15px; color:var(--text)">نصائح التحكم</h3>
+        <div class="grid grid-2" style="gap:10px">
+          <div class="field"><label>الوزن المطلوب</label><div class="settings-input" style="width:100%; color:var(--coral)">${latest.target_weight || '-'}</div></div>
+          <div class="field"><label>الدهون المطلوبة</label><div class="settings-input" style="width:100%; color:var(--coral)">${latest.target_fat || '-'}</div></div>
+          <div class="field"><label>العضلات المطلوبة</label><div class="settings-input" style="width:100%; color:var(--lime)">${latest.target_muscle || '-'}</div></div>
+          <div class="field"><label>المياه المطلوبة</label><div class="settings-input" style="width:100%; color:var(--cyan)">${latest.target_water || '-'}</div></div>
+        </div>
+      </div>
+    </div>
+    
+    ${history.length > 1 ? `
+    <h3 style="margin-top:30px; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">سجل القراءات السابقة</h3>
+    <div class="grid grid-3">
+      ${history.slice(1).map(h => `
+        <div class="card" style="padding:15px">
+          <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+            <div style="color:var(--lime); font-weight:bold">${h.reading_date}</div>
+            <button class="btn btn-ghost" style="color:var(--coral); padding:2px 8px; font-size:11px" onclick="deleteUserInBody(${h.id})">مسح</button>
+          </div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:5px"><span>الوزن:</span> <b>${h.weight} kg</b></div>
+          <div style="display:flex; justify-content:space-between; margin-bottom:5px"><span>الدهون:</span> <b>${h.body_fat}%</b></div>
+          <div style="display:flex; justify-content:space-between;"><span>العضلات:</span> <b>${h.muscle_mass}%</b></div>
+        </div>
+      `).join('')}
+    </div>
+    ` : ''}
+    </div> <!-- Closes latestInBodyContainer -->
+  `;
+}
+
+function updateInBodyComparison() {
+  const history = window.currentInBodyHistory;
+  const container = document.getElementById('inbodyComparisonContainer');
+  if(!container || !history || history.length === 0) return;
+  
+  if(history.length < 2) {
+    container.innerHTML = `
+      <div class="card" style="margin-bottom:20px; background:var(--surface-2); border:1px solid var(--border); text-align:center">
+        <h3 style="margin:0; color:var(--gold); margin-bottom:10px">نظام المقارنة</h3>
+        <p style="color:var(--text-dim)">النظام ده بيشتغل لما يكون عندك أكتر من قراءة InBody عشان يقارن بينهم ويوضحلك الفرق.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  const targetSel = document.getElementById('compareTargetSel');
+  const baseSel = document.getElementById('compareBaseSel');
+  
+  let targetIdx = targetSel ? parseInt(targetSel.value) : 0;
+  let baseIdx = baseSel ? parseInt(baseSel.value) : history.length - 1;
+  
+  const target = history[targetIdx];
+  const base = history[baseIdx];
+  
+  const weightDiff = (target.weight - base.weight).toFixed(1);
+  const fatDiff = (target.body_fat - base.body_fat).toFixed(1);
+  const muscleDiff = (target.muscle_mass - base.muscle_mass).toFixed(1);
+  
+  const wColor = weightDiff < 0 ? 'var(--lime)' : 'var(--coral)';
+  const fColor = fatDiff < 0 ? 'var(--lime)' : 'var(--coral)';
+  const mColor = muscleDiff > 0 ? 'var(--lime)' : 'var(--coral)';
+  
+  const html = `
+    <div class="card" style="margin-bottom:20px; background:var(--surface-2); border:1px solid var(--border)">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:10px">
+        <h3 style="margin:0; color:var(--gold)">نظام المقارنة</h3>
+        <div style="display:flex; gap:10px; align-items:center">
+          <span style="color:var(--text-dim)">قارن</span>
+          <select id="compareTargetSel" class="settings-input" style="height:36px; padding:0 10px; background:var(--bg)" onchange="updateInBodyComparison()">
+            ${history.map((h, i) => `<option value="${i}" ${i === targetIdx ? 'selected' : ''}>${h.reading_date}</option>`).join('')}
+          </select>
+          <span style="color:var(--text-dim)">مع</span>
+          <select id="compareBaseSel" class="settings-input" style="height:36px; padding:0 10px; background:var(--bg)" onchange="updateInBodyComparison()">
+            ${history.map((h, i) => `<option value="${i}" ${i === baseIdx ? 'selected' : ''}>${h.reading_date}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      
+      <div class="grid grid-3">
+        <div style="text-align:center; padding:15px; background:var(--bg); border-radius:8px">
+          <div style="color:var(--text-dim); margin-bottom:5px">الوزن</div>
+          <div style="font-size:24px; font-weight:bold; color:${wColor}" dir="ltr">${weightDiff > 0 ? '+' : ''}${weightDiff} kg</div>
+        </div>
+        <div style="text-align:center; padding:15px; background:var(--bg); border-radius:8px">
+          <div style="color:var(--text-dim); margin-bottom:5px">الدهون</div>
+          <div style="font-size:24px; font-weight:bold; color:${fColor}" dir="ltr">${fatDiff > 0 ? '+' : ''}${fatDiff} %</div>
+        </div>
+        <div style="text-align:center; padding:15px; background:var(--bg); border-radius:8px">
+          <div style="color:var(--text-dim); margin-bottom:5px">العضلات</div>
+          <div style="font-size:24px; font-weight:bold; color:${mColor}" dir="ltr">${muscleDiff > 0 ? '+' : ''}${muscleDiff} %</div>
+        </div>
+      </div>
+    </div>
+  `;
+  if(container) container.innerHTML = html;
+  
+  // Also update the latest reading title if we want, but let's just leave it as "التفاصيل"
+  const latestTitle = document.querySelector('#latestInBodyContainer h3');
+  if(latestTitle) latestTitle.innerHTML = `تفاصيل القراءة (${target.reading_date})`;
+}
+
+/* ---- User InBody ---- */
+views['u-inbody'] = async () => {
+  let history = [];
+  try {
+    history = await apiFetch('/inbody/me');
+  } catch(e) {
+    console.error(e);
+  }
+  
+  return `
+    <div class="page-head" style="display:flex; justify-content:space-between; align-items:flex-end;">
+      <div><h1>بياناتي (InBody)</h1><p>سجل قراءاتك وتابع تطورك</p></div>
+      <button class="btn btn-primary" onclick="openUserInBodyModal()">+ إضافة قراءة</button>
+    </div>
+    ${renderInBodyDashboard(history)}
+  `;
+}
+
+function openUserInBodyModal() {
+  let m = document.getElementById('userInBodyModal');
+  if(!m) {
+    m = document.createElement('div');
+    m.id = 'userInBodyModal';
+    m.innerHTML = `
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;">
+        <div style="background:var(--surface-2);padding:20px;border-radius:12px;width:90%;max-width:400px;border:1px solid var(--border)">
+          <h3 style="margin-bottom:15px">إضافة قراءة InBody</h3>
+          <div class="field" style="margin-bottom:10px"><label>الوزن (kg)</label><input type="number" step="0.1" id="uiWeight" class="settings-input" style="width:100%"></div>
+          <div class="field" style="margin-bottom:10px"><label>الدهون (%)</label><input type="number" step="0.1" id="uiFat" class="settings-input" style="width:100%"></div>
+          <div class="field" style="margin-bottom:15px"><label>العضلات (%)</label><input type="number" step="0.1" id="uiMuscle" class="settings-input" style="width:100%"></div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-primary" style="flex:1" onclick="saveUserInBody()">حفظ</button>
+            <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('userInBodyModal').style.display='none'">إلغاء</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(m);
+  }
+  document.getElementById('uiWeight').value = '';
+  document.getElementById('uiFat').value = '';
+  document.getElementById('uiMuscle').value = '';
+  m.style.display = 'flex';
+}
+
+async function saveUserInBody() {
+  const w = parseFloat(document.getElementById('uiWeight').value);
+  const f = parseFloat(document.getElementById('uiFat').value);
+  const m = parseFloat(document.getElementById('uiMuscle').value);
+  if(!w || !f || !m) return toast('يرجى تعبئة كل الحقول');
+  try {
+    await apiFetch('/inbody/manual', {
+      method: 'POST',
+      body: JSON.stringify({weight:w, body_fat:f, muscle_mass:m})
+    });
+    toast('✅ تم إضافة القراءة بنجاح');
+    document.getElementById('userInBodyModal').style.display = 'none';
+    goView('u-inbody'); // Refresh
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+async function deleteUserInBody(id) {
+  if(!confirm('متأكد إنك عاوز تمسح القراءة دي؟')) return;
+  try {
+    await apiFetch('/inbody/' + id, {method: 'DELETE'});
+    toast('✅ تم الحذف');
+    goView('u-inbody');
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+/* ---- User Analytics ---- */
+views['u-analytics'] = async () => {
+  let history = [];
+  try {
+    history = await apiFetch('/inbody/me');
+  } catch(e) {
+    console.error(e);
+  }
+  
+  let workoutHistory = [];
+  try {
+      const userRes = await apiFetch('/auth/me');
+      if (userRes && userRes.id) {
+          workoutHistory = await apiFetch('/workouts/history/' + userRes.id);
+      }
+  } catch(e) {
+      console.error(e);
+  }
+  
+  return `
+    <div class="page-head"><h1>تقدمي</h1><p>متابعة التزامك وتطورك</p></div>
+    ${renderAnalyticsDashboard(history, workoutHistory)}
+  `;
+}
+
+/* ---- User Settings ---- */
+views['u-settings'] = ()=>`
+  <div class="page-head"><h1>إعداداتي</h1><p>تعديل الحساب والإشعارات</p></div>
+  <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim)">
+    <div style="font-size:40px;margin-bottom:15px">⚙️</div>
+    <h3 style="margin-bottom:10px;color:var(--text)">الإعدادات</h3>
+    <p>تعديل الإعدادات الشخصية هيكون متاح قريباً.</p>
+  </div>
+`;
+
+/* ---- User Chat (With Admin) ---- */
+views['u-chat'] = async () => {
+  const msgs = await apiFetch('/chat/1'); // Fetch chat with admin (ID: 1)
+  
+  return `
+  <div class="page-head"><h1>المحادثة مع الكابتن</h1><p>لو عندك استفسار في التمرين أو الأكل، الكابتن هنا!</p></div>
+  <div class="ai-chat-wrap" style="height:calc(100vh - 200px); min-height:400px">
+    <div class="ai-chat-head" style="background:linear-gradient(135deg,var(--surface-2),var(--surface-3))">
+      <div class="ai-icon" style="background:var(--lime);color:#000;font-weight:900">C</div>
+      <div>
+        <div style="font-weight:700">كابتن الجيم</div>
+        <div style="font-size:11px;color:var(--text-dim)">متواجد</div>
+      </div>
+    </div>
+    <div class="ai-chat-body chat-messages-area" id="uChatBody" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px">
+      ${msgs.length === 0 ? '<div style="text-align:center;color:var(--text-dim);padding:40px 20px">ابدأ المحادثة مع كابتنك 👋</div>' : ''}
+      ${msgs.map(m => {
+        const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}) : '';
+        if(m.is_me) {
+          return `
+            <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+              <div class="ai-bubble user" style="background:var(--surface-3);color:var(--text);border-radius:14px 14px 4px 14px;max-width:75%">${m.content}</div>
+              ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-right:4px">${time}</div>` : ''}
+            </div>`;
+        } else {
+          return `
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+              <div class="ai-bubble assistant" style="background:var(--lime);color:#0d0e10;font-weight:600;border-radius:14px 14px 14px 4px;max-width:75%">${m.content}</div>
+              ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-left:4px">${time}</div>` : ''}
+            </div>`;
+        }
+      }).join('')}
+    </div>
+    <div class="ai-chat-input">
+      <input id="uChatInput" placeholder="اكتب رسالتك للكابتن..." onkeypress="if(event.key==='Enter') sendUChat()">
+      <button class="btn btn-primary" onclick="sendUChat()">إرسال ↩</button>
+    </div>
+  </div>
+  `;
+  // Scroll to bottom
+  setTimeout(() => { const b = document.getElementById('uChatBody'); if(b) b.scrollTop = b.scrollHeight; }, 150);
+}
+
+async function sendUChat(){
+  const inp = document.getElementById('uChatInput');
+  const txt = inp.value.trim();
+  if(!txt) return;
+  
+  const body = document.getElementById('uChatBody');
+  body.insertAdjacentHTML('beforeend', `<div class="ai-bubble user" style="background:var(--surface-3);color:var(--text)">${txt}</div>`);
+  inp.value = '';
+  body.scrollTop = body.scrollHeight;
+  
+  try {
+    await apiFetch('/chat', {
+      method: 'POST',
+      body: JSON.stringify({ receiver_id: 1, content: txt })
+    });
+  } catch(e) {
+    toast(`❌ خطأ في الإرسال: ${e.message}`);
+  }
+}
+
+/* ---- User AI Chat ---- */
+views['u-aichat'] = ()=>`
+  <div class="page-head"><h1>مساعد التدريب والتغذية (AI)</h1><p>اسألني عن أي تمرين، بدائل الأجهزة، أو السعرات الحرارية في الأكل</p></div>
+  <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim)">
+    <div style="font-size:40px;margin-bottom:15px">🤖</div>
+    <h3 style="margin-bottom:10px;color:var(--text)">المساعد الذكي</h3>
+    <p>جاري تفعيل الـ AI الخاص بأسئلتك الرياضية قريباً.</p>
+  </div>
+`;
+
+/* ---- User Notifications ---- */
+views['u-notifs'] = async () => {
+  let data = [];
+  try { data = await apiFetch('/notifications'); } catch(e) {}
+
+  const icons = { appointment_reminder: '📅', subscription_expiry: '⏰', new_client: '🎉', general: '📢' };
+
+  return `
+  <div class="page-head"><h1>🔔 إشعاراتك</h1><p>كل التنبيهات والتذكيرات من الكابتن</p></div>
+  ${data.length === 0 ? `
+    <div class="card" style="text-align:center;padding:50px;color:var(--text-dim)">
+      <div style="font-size:40px;margin-bottom:12px">🔔</div>
+      <p>مفيش إشعارات جديدة حالياً</p>
+    </div>` :
+    data.map(n => `
+    <div class="card" style="margin-bottom:10px;border-right:3px solid ${!n.is_read ? 'var(--lime)' : 'var(--border)'};padding:14px 18px;cursor:pointer;transition:all 0.2s" onclick="markNotifRead(${n.id});this.style.borderColor='var(--border)'">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <span style="font-size:22px;flex-shrink:0">${icons[n.type] || '📢'}</span>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px;${!n.is_read ? 'color:var(--text)' : 'color:var(--text-dim)'}">${n.title}</div>
+          <div style="font-size:13px;color:var(--text-dim);line-height:1.5">${n.message}</div>
+          <div style="font-size:11px;color:var(--text-dimmer);margin-top:6px">${n.created_at}</div>
+        </div>
+        ${!n.is_read ? '<span style="width:8px;height:8px;border-radius:50%;background:var(--lime);flex-shrink:0;margin-top:4px"></span>' : ''}
+      </div>
+    </div>`).join('')
+  }
+  `;
+};
