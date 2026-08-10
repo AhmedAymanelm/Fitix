@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import CORS_ORIGINS
 from config.database import engine, SessionLocal, Base
-from models import User, ClientProfile, Exercise, WorkoutPlan, WorkoutExercise, WorkoutLog, NutritionPlan, Meal, InBodyReading, FitnessTest, Message, Notification, NotificationSettings  # noqa: F401
+from models import User, ClientProfile, Exercise, WorkoutPlan, WorkoutExercise, WorkoutLog, NutritionPlan, Meal, InBodyReading, FitnessTest, Message, Notification, NotificationSettings, GymSettings  # noqa: F401
 from api.auth import router as auth_router
 from api.admin import router as admin_router
 from api.chat import router as chat_router
@@ -16,6 +16,7 @@ from api.inbody import router as inbody_router
 from api.cv_ws import router as cv_ws_router
 from api.fitness_tests import router as fitness_tests_router
 from api.notifications import router as notifications_router
+from api.gym_settings import router as gym_settings_router
 from api.deps import hash_password
 
 # ── Create tables ──
@@ -47,6 +48,7 @@ app.include_router(inbody_router, prefix="/api/inbody", tags=["InBody"])
 app.include_router(cv_ws_router, tags=["CV Tracker Websocket"])
 app.include_router(fitness_tests_router)
 app.include_router(notifications_router)
+app.include_router(gym_settings_router)
 
 # ── Static Files (Uploads) ──
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "uploads")

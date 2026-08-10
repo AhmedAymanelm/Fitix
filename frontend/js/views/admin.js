@@ -1689,38 +1689,84 @@ views['a-analytics'] = async () => {
 
 /* ---- Admin Settings ---- */
 views['a-settings'] = () => {
-  setTimeout(() => loadNotifSettings(), 100);
+  const gs = window._gymSettings || { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
+  setTimeout(() => { loadNotifSettings(); }, 100);
   return `
-  <div class="page-head"><h1>الإعدادات</h1><p>تحكم في إعدادات النظام والإشعارات</p></div>
+  <div class="page-head"><h1>الإعدادات</h1><p>تحكم في إعدادات النظام والإشعارات والهوية البصرية</p></div>
+
+  <!-- Gym Branding -->
+  <div class="notif-settings-card" style="margin-bottom:20px">
+    <h4>🏋️ هوية الجيم (الاسم + اللوجو + اللون)</h4>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:18px">التغييرات دي هتظهر في الـ sidebar وعلى الأبلكيشن كله.</p>
+
+    <!-- Logo Upload -->
+    <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px">
+      <div id="logoPreviewBox" style="width:80px;height:80px;border-radius:12px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;background:var(--surface-2)" onclick="document.getElementById('logoFileInput').click()">
+        ${gs.logo_url
+          ? `<img id="logoPreviewImg" src="${gs.logo_url}" style="width:100%;height:100%;object-fit:contain">`
+          : `<span id="logoPreviewImg" style="font-size:28px">🏋️</span>`}
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:14px;margin-bottom:6px">لوجو الجيم</div>
+        <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px">PNG / JPG / SVG — بيظهر في الـ sidebar</div>
+        <input type="file" id="logoFileInput" accept="image/*" style="display:none" onchange="previewAndUploadLogo(this)">
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('logoFileInput').click()">📷 رفع لوجو</button>
+        ${gs.logo_url ? `<button class="btn btn-ghost btn-sm" style="color:var(--coral);margin-right:6px" onclick="removeLogo()">🗑️ إزالة</button>` : ''}
+      </div>
+    </div>
+
+    <!-- Gym Name -->
+    <div class="notif-settings-row" style="margin-bottom:12px">
+      <label style="flex:1">🏷️ اسم الجيم / البراند</label>
+      <input id="gymNameInput" class="settings-input" value="${gs.gym_name}" style="width:200px;margin:0" oninput="document.querySelectorAll('.brand small').forEach(e=>e.textContent=this.value)">
+    </div>
+
+    <!-- Color Picker -->
+    <div class="notif-settings-row" style="margin-bottom:16px">
+      <label style="flex:1">🎨 اللون الأساسي (Accent Color)</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input type="color" id="gymColorInput" value="${gs.primary_color}"
+          style="width:44px;height:36px;border:none;background:none;cursor:pointer;border-radius:8px"
+          oninput="document.documentElement.style.setProperty('--primary', this.value); document.getElementById('colorHexDisplay').textContent = this.value">
+        <code id="colorHexDisplay" style="font-size:13px;color:var(--text-dim)">${gs.primary_color}</code>
+        <!-- Presets -->
+        <div style="display:flex;gap:4px">
+          ${['#c8ff3d','#00d4ff','#ff6b35','#a855f7','#22d3ee','#f43f5e','#84cc16'].map(c =>
+            `<div onclick="document.getElementById('gymColorInput').value='${c}';document.documentElement.style.setProperty('--primary','${c}');document.getElementById('colorHexDisplay').textContent='${c}'"
+              style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${c===gs.primary_color?'#fff':'transparent'};flex-shrink:0"></div>`
+          ).join('')}
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" onclick="saveGymBranding()">💾 حفظ هوية الجيم</button>
+  </div>
 
   <!-- Notification Settings -->
-  <div class="notif-settings-card">
+  <div class="notif-settings-card" style="margin-bottom:20px">
     <h4>🔔 إعدادات الإشعارات التلقائية</h4>
     <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">النظام هيبعت إشعارات تلقائية للعملاء حسب الإعدادات دي.</p>
-
     <div class="notif-settings-row">
       <label>📅 التذكير بالموعد — كام يوم قبل؟</label>
       <input type="number" id="notifApptDays" class="notif-days-input" min="1" max="30" value="1" placeholder="1">
       <span style="font-size:12px;color:var(--text-dim)">يوم</span>
     </div>
-
     <div class="notif-settings-row">
       <label>⏰ تذكير انتهاء الاشتراك — كام يوم قبل؟</label>
       <input type="number" id="notifSubDays" class="notif-days-input" min="1" max="30" value="3" placeholder="3">
       <span style="font-size:12px;color:var(--text-dim)">يوم</span>
     </div>
-
-    <div style="display:flex; gap:10px; margin-top:16px; flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="saveNotifSettings()">💾 حفظ الإعدادات</button>
+    <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="saveNotifSettings()">💾 حفظ إعدادات الإشعارات</button>
       <button class="btn btn-ghost" id="runCheckBtn" onclick="runDailyNotifCheck()">🔄 فحص يدوي الآن</button>
     </div>
   </div>
 
-  <!-- Notification Channel -->
+  <!-- Notification Channels -->
   <div class="notif-settings-card">
     <h4>📱 قنوات الإشعارات</h4>
     <div class="setting-row">
-      <div class="setting-info"><div class="setting-name">إشعارات داخل الأبلكيشن</div><div class="setting-desc">الإشعارات هتظهر في الجرس في الأبلكيشن</div></div>
+      <div class="setting-info"><div class="setting-name">إشعارات داخل الأبلكيشن</div><div class="setting-desc">الإشعارات هتظهر في الجرس</div></div>
       <label class="toggle"><input type="checkbox" checked disabled><div class="toggle-slider"></div></label>
     </div>
     <div class="setting-row" style="margin-top:10px">
@@ -1728,21 +1774,66 @@ views['a-settings'] = () => {
       <label class="toggle"><input type="checkbox" id="browserPushToggle" onchange="if(this.checked){Notification.requestPermission()}"><div class="toggle-slider"></div></label>
     </div>
   </div>
-
-  <!-- App Customization -->
-  <div class="settings-section">
-    <h3>تخصيص التطبيق</h3>
-    <div class="setting-row">
-      <div class="setting-info"><div class="setting-name">لون الـ Theme الأساسي</div></div>
-      <input type="color" value="#c8ff3d" style="width:50px;height:30px;border:none;background:none;cursor:pointer">
-    </div>
-    <div class="setting-row">
-      <div class="setting-info"><div class="setting-name">اسم الجيم / البراند</div></div>
-      <input class="settings-input" value="FORM Fitness">
-    </div>
-  </div>
-  <button class="btn btn-primary" onclick="toast('✅ تم الحفظ بنجاح')">حفظ الإعدادات</button>
 `};
+
+async function saveGymBranding() {
+  const name = document.getElementById('gymNameInput').value.trim();
+  const color = document.getElementById('gymColorInput').value;
+  try {
+    await apiFetch('/gym-settings', {
+      method: 'PUT',
+      body: JSON.stringify({ gym_name: name, primary_color: color })
+    });
+    // تطبيق فوري
+    document.documentElement.style.setProperty('--primary', color);
+    await loadGymSettings();
+    toast('✅ تم حفظ هوية الجيم بنجاح!');
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+async function previewAndUploadLogo(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+
+  // Preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const box = document.getElementById('logoPreviewBox');
+    if (box) box.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain">`;
+  };
+  reader.readAsDataURL(file);
+
+  // Upload
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(API_BASE + '/gym-settings/logo', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'فشل الرفع');
+    await loadGymSettings();
+    toast('✅ تم رفع اللوجو وحفظه!');
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
+
+async function removeLogo() {
+  try {
+    await apiFetch('/gym-settings', { method: 'PUT', body: JSON.stringify({ logo_url: null }) });
+    window._gymSettings.logo_url = null;
+    await loadGymSettings();
+    toast('✅ تم إزالة اللوجو');
+    goView('a-settings');
+  } catch(e) { toast('❌ ' + e.message); }
+}
+
 
 
 /* ---- Admin AI Assistant ---- */

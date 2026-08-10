@@ -71,23 +71,33 @@ function renderSidebar(){
   let firstName = '';
   try {
     const user = JSON.parse(localStorage.getItem('user'));
-    if (user && user.full_name) {
-      firstName = user.full_name.split(' ')[0];
-    }
+    if (user && user.full_name) firstName = user.full_name.split(' ')[0];
   } catch(e){}
 
   const nav = mode==='admin' ? adminNav : userNav;
   const groupLabel = mode==='admin' ? 'إدارة السيستم' : 'حسابي';
-  
+  const gs = window._gymSettings || { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
+
+  // لوجو + اسم الجيم في أعلى الـ sidebar
+  const logoHtml = gs.logo_url
+    ? `<img src="${gs.logo_url}" style="height:40px;object-fit:contain;margin-bottom:4px">`
+    : `<div style="font-size:22px;font-weight:900;color:var(--primary);letter-spacing:-1px">${gs.gym_name}</div>`;
+
+  const brandHtml = `
+    <div style="padding:16px 20px 12px;text-align:center;border-bottom:1px solid var(--border);margin-bottom:12px">
+      ${logoHtml}
+      <div style="font-size:11px;color:var(--text-dimmer);margin-top:2px">${gs.logo_url ? gs.gym_name : 'Fitness OS'}</div>
+    </div>`;
+
   let welcomeHtml = '';
   if (firstName) {
-    welcomeHtml = `<div style="padding: 10px 20px 25px; text-align: center; border-bottom: 1px solid var(--border); margin-bottom: 20px;">
-      <h2 style="font-size: 22px; font-weight: 800; color: var(--primary); margin-bottom: 5px;">أهلاً يا ${firstName} 👋</h2>
-      <div style="font-size: 12px; color: var(--text-dim);">مرحباً بك في Fitness OS</div>
+    welcomeHtml = `<div style="padding:6px 20px 14px;text-align:center">
+      <span style="font-size:14px;color:var(--text-dim)">أهلاً يا <b style="color:var(--primary)">${firstName}</b> 👋</span>
     </div>`;
   }
-  
+
   document.getElementById('sidebar').innerHTML = `
+    ${brandHtml}
     ${welcomeHtml}
     <div class="side-title">${groupLabel}</div>
     ${nav.map(n=>`
@@ -96,6 +106,28 @@ function renderSidebar(){
         ${n.badge?`<span class="nav-badge">${n.badge}</span>`:''}
       </div>`).join('')}
   `;
+}
+
+// تحميل إعدادات الجيم وتطبيقها عند بدء التطبيق
+async function loadGymSettings() {
+  try {
+    const s = await apiFetch('/gym-settings');
+    window._gymSettings = s;
+    // تطبيق اللون الأساسي
+    if (s.primary_color) {
+      document.documentElement.style.setProperty('--primary', s.primary_color);
+    }
+    // تحديث الـ topbar brand
+    const brandEls = document.querySelectorAll('.brand');
+    brandEls.forEach(el => {
+      const small = el.querySelector('small');
+      if (small) small.textContent = s.gym_name || 'Fitness OS';
+    });
+    // إعادة رسم الـ sidebar
+    renderSidebar();
+  } catch(e) {
+    window._gymSettings = { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
+  }
 }
 
 

@@ -47,3 +47,17 @@ class NotificationSettings(Base):
 
     def __repr__(self) -> str:
         return f"<NotificationSettings appt={self.appointment_reminder_days}d sub={self.subscription_reminder_days}d>"
+
+
+class GymSettings(Base):
+    """إعدادات الجيم — الاسم واللون واللوجو."""
+    __tablename__ = "gym_settings"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    gym_name: Mapped[str] = mapped_column(String(100), default="FORM Fitness")
+    primary_color: Mapped[str] = mapped_column(String(20), default="#c8ff3d")
+    logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    def __repr__(self) -> str:
+        return f"<GymSettings name={self.gym_name}>"

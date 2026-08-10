@@ -6,7 +6,7 @@ from .nutrition import NutritionPlan, Meal, FoodItem
 from .inbody import InBodyReading
 from .fitness_test import FitnessTest
 from .message import Message
-from .notification import Notification, NotificationSettings
+from .notification import Notification, NotificationSettings, GymSettings
 
 __all__ = [
     "User",
@@ -22,4 +22,5 @@ __all__ = [
     "Message",
     "Notification",
     "NotificationSettings",
+    "GymSettings",
 ]

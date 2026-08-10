@@ -42,6 +42,7 @@ async function doLogin(){
     setMode(data.user.role);
     toast(`أهلاً بيك يا ${data.user.full_name}`);
     startNotifPolling();
+    loadGymSettings();
     
   } catch (error) {
     toast(`❌ ${error.message}`);
@@ -69,6 +70,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       document.getElementById('appShell').classList.add('show');
       setMode(userData.role);
       startNotifPolling();
+      loadGymSettings();
     } catch(e) {
       logout();
     }
