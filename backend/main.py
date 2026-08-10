@@ -66,11 +66,13 @@ if os.path.exists(FRONTEND_DIR):
         with open(index_path, "r", encoding="utf-8") as f:
             html = f.read()
 
-        # Load the responsive layer after the main stylesheet so mobile rules
-        # always win over legacy desktop rules and inline responsive blocks.
+        # Load responsive assets after the legacy stylesheet.
         responsive_link = '<link rel="stylesheet" href="/css/responsive.css">'
+        responsive_script = '<script src="/js/core/responsive.js" defer></script>'
         if "/css/responsive.css" not in html:
             html = html.replace("</head>", f"{responsive_link}\n</head>", 1)
+        if "/js/core/responsive.js" not in html:
+            html = html.replace("</head>", f"{responsive_script}\n</head>", 1)
 
         return HTMLResponse(content=html)
 
