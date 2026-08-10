@@ -51,6 +51,32 @@ body::before{
 .brand{display:flex; align-items:center; gap:10px; font-weight:900; font-size:20px; letter-spacing:.5px;}
 .brand .dot{width:10px; height:10px; border-radius:3px; background:var(--lime); box-shadow:0 0 14px var(--lime);}
 .brand small{font-family:'Tajawal'; font-weight:500; color:var(--text-dim); font-size:12px; margin-right:6px;}
+.brand-dot{display:inline-block;}
+
+.sidebar-toggle{
+  display:none;
+  width:34px; height:34px;
+  flex-shrink:0;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--surface-2);
+  align-items:center; justify-content:center; gap:4px;
+  padding:0;
+  color:var(--text);
+  transition:.2s;
+}
+.sidebar-toggle span{
+  display:block;
+  width:16px;
+  height:2px;
+  border-radius:999px;
+  background:currentColor;
+  transition:transform .2s ease, opacity .2s ease;
+}
+.sidebar-toggle:hover{border-color:var(--lime); color:var(--lime);}
+.sidebar-toggle.open span:nth-child(1){transform:translateY(6px) rotate(45deg);}
+.sidebar-toggle.open span:nth-child(2){opacity:0;}
+.sidebar-toggle.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg);}
 
 .mode-switch{
   display:flex; background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:4px; gap:2px;
@@ -378,6 +404,11 @@ body::before{
 .modal-actions{display:flex; gap:10px; margin-top:18px;}
 
 @media(max-width:880px){
+  .brand-dot{display:none;}
+  .sidebar-toggle{display:flex;}
+  .topbar{padding:0 14px;}
+  .topbar-right{gap:10px;}
+  #liveClockWidget{display:none !important;}
   .sidebar{position:fixed; right:0; top:64px; bottom:0; z-index:60; background:var(--bg); transform:translateX(100%); transition:.25s; width:220px;}
   .sidebar.open{transform:translateX(0);}
   .content{padding:18px;}

@@ -49,7 +49,15 @@
 <!-- ============ APP SHELL (after login) ============ -->
 <div class="app-shell" id="appShell">
   <div class="topbar">
-    <div class="brand"><span class="dot"></span><span id="appBrandName">Fitix</span><small>Fitness OS</small></div>
+    <div class="brand">
+      <span class="dot brand-dot"></span>
+      <button class="sidebar-toggle" id="sidebarToggleBtn" type="button" onclick="toggleSidebar()" aria-label="فتح القائمة" title="القائمة">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <span id="appBrandName">Fitix</span><small>Fitness OS</small>
+    </div>
 
 
     <div class="topbar-right" style="display:flex; align-items:center; gap:15px;">

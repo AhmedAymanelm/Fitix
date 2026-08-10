@@ -9,6 +9,40 @@ async function apiFetch(path, options={}) {
   return data;
 }
 
+function syncSidebarToggleState(isOpen) {
+  const toggleBtn = document.getElementById('sidebarToggleBtn');
+  if (!toggleBtn) return;
+  toggleBtn.classList.toggle('open', isOpen);
+  toggleBtn.setAttribute('aria-label', isOpen ? 'إغلاق القائمة' : 'فتح القائمة');
+  toggleBtn.title = isOpen ? 'إغلاق القائمة' : 'القائمة';
+}
+
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  sidebar.classList.add('open');
+  document.body.classList.add('sidebar-open');
+  syncSidebarToggleState(true);
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  sidebar.classList.remove('open');
+  document.body.classList.remove('sidebar-open');
+  syncSidebarToggleState(false);
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  if (sidebar.classList.contains('open')) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+}
+
 async function goView(id){
   currentView = id;
 
@@ -35,5 +69,6 @@ async function goView(id){
   
   // Scroll للأعلى (مع مراعاة الـ mobile nav)
   window.scrollTo({top:0, behavior:'smooth'});
+  closeSidebar();
   requestAnimationFrame(()=>{ if(id==='u-dash') bindTimerless(); if(window.initFns && initFns[id]) initFns[id](); });
 }
