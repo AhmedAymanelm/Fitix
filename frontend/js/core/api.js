@@ -11,8 +11,12 @@ async function apiFetch(path, options={}) {
 
 async function goView(id){
   currentView = id;
-  document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.nav===id));
-  
+
+  // تحديث الـ active في الـ sidebar والـ mobile nav
+  document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el =>
+    el.classList.toggle('active', el.dataset.nav === id)
+  );
+
   const content = document.getElementById('content');
   if(!views[id]){
     content.innerHTML = '<p>قريباً</p>';
@@ -29,7 +33,7 @@ async function goView(id){
     console.error(e);
   }
   
+  // Scroll للأعلى (مع مراعاة الـ mobile nav)
   window.scrollTo({top:0, behavior:'smooth'});
   requestAnimationFrame(()=>{ if(id==='u-dash') bindTimerless(); if(window.initFns && initFns[id]) initFns[id](); });
 }
-

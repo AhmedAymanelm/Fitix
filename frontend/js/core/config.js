@@ -107,6 +107,22 @@ function renderSidebar(){
         ${n.badge?`<span class="nav-badge">${n.badge}</span>`:''}
       </div>`).join('')}
   `;
+
+  // رسم الـ bottom nav للموبايل
+  renderMobileNav(nav);
+}
+
+function renderMobileNav(nav) {
+  const mobileNav = document.getElementById('mobileNav');
+  if (!mobileNav) return;
+
+  mobileNav.innerHTML = nav.map(n => `
+    <div class="mobile-nav-item ${n.id === currentView ? 'active' : ''}"
+         onclick="goView('${n.id}')" data-nav="${n.id}">
+      ${n.icon}
+      <span>${n.label.replace(/\s*🥗|🔔|🤖|AI\s*/g, '').trim().split(' ')[0]}</span>
+    </div>
+  `).join('');
 }
 
 // تحميل إعدادات الجيم وتطبيقها عند بدء التطبيق
