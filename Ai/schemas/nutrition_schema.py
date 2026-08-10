@@ -22,21 +22,38 @@ class MealAlternative(BaseModel):
 
 
 class MealPlan(BaseModel):
-    meal_name: str = Field(description="اسم الوجبة مثل: الفطار، سناك 1، الغداء، سناك 2، العشاء")
+    meal_name: str = Field(description="اسم الوجبة مثل: الفطار، سناك ما قبل التمرين، الغداء، سناك ما بعد التمرين، العشاء")
     meal_time: str = Field(description="الوقت المقترح للوجبة مثل: 7:00 ص، 10:00 ص")
+    meal_role: str = Field(description="دور الوجبة: فطار | سناك | غداء | عشاء | ما قبل التمرين | ما بعد التمرين")
     alternatives: List[MealAlternative] = Field(
         description="3 إلى 4 خيارات بديلة لهذه الوجبة. العميل يختار الخيار اللي يناسبه"
     )
-    # الخيار الأساسي للتخزين (أول alternative)
-    items: Optional[str] = Field(default=None, description="ملخص نصي للخيار الأول")
     total_calories: int = Field(description="متوسط سعرات الوجبة (بناءً على الخيار الأول)")
 
 
 class NutritionPlanOutput(BaseModel):
+    # ── الأرقام الأساسية (للأدمن فقط — لا تعرضها للعميل) ──
+    bmr: int = Field(description="معدل الحرق الأساسي المستخدم في الحساب (BMR)")
     daily_calories: int = Field(description="إجمالي السعرات اليومية المستهدفة")
-    protein_target: int = Field(description="إجمالي البروتين اليومي المستهدف بالجرام")
-    carbs_target: int = Field(description="إجمالي الكربوهيدرات اليومية المستهدفة بالجرام")
-    fats_target: int = Field(description="إجمالي الدهون اليومية المستهدفة بالجرام")
+    workout_day_calories: int = Field(description="سعرات يوم التمرين (أعلى من يوم الراحة)")
+    rest_day_calories: int = Field(description="سعرات يوم الراحة (أقل من يوم التمرين)")
+    caloric_deficit: int = Field(
+        description="العجز أو الزيادة في السعرات (موجب = عجز/حرق دهون، سالب = زيادة/تضخيم). مثال: 400 يعني العميل بياكل 400 سعرة أقل من الـ BMR"
+    )
+    total_protein: int = Field(description="إجمالي البروتين اليومي المستهدف بالجرام")
+    total_carbs: int = Field(description="إجمالي الكربوهيدرات اليومية المستهدفة بالجرام")
+    total_fats: int = Field(description="إجمالي الدهون اليومية المستهدفة بالجرام")
+
+    # ── الوجبات ──
     meals: List[MealPlan] = Field(description="قائمة الوجبات (5 وجبات) — كل وجبة فيها 3-4 خيارات بديلة")
-    workout_nutrition_notes: str = Field(description="ملاحظات خاصة بالتغذية حول التمرين (وجبة ما قبل وما بعد التمرين)")
-    notes: str = Field(description="ملاحظات ونصائح عامة للعميل بالعربي المصري")
+
+    # ── ملاحظات للأدمن فقط ──
+    admin_notes: str = Field(
+        description="ملاحظات فنية للمدرب: كيف تم حساب السعرات، المعادلات المستخدمة، نصائح للمتابعة — بالعربي"
+    )
+
+    # ── ملاحظات للعميل ──
+    client_notes: str = Field(description="نصائح وتوجيهات للعميل بالعربي المصري البسيط — بدون أرقام ماكروز")
+    workout_nutrition_notes: str = Field(
+        description="إرشادات التغذية المرتبطة بالتمرين للعميل: ماذا يأكل قبل وبعد التمرين"
+    )

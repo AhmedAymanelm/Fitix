@@ -32,6 +32,7 @@ const adminNav = [
 ];
 const userNav = [
   {id:'u-dash', label:'تمارين النهاردة', icon:ic.dash},
+  {id:'u-nutrition', label:'نظام التغذية 🥗', icon:ic.file},
   {id:'u-chat', label:'المحادثة مع الكابتن', icon:ic.chat},
   {id:'u-notifs', label:'إشعاراتي 🔔', icon:ic.chat},
   {id:'u-cv', label:'اختبار اللياقة (كاميرا)', icon:ic.cam},

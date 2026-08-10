@@ -96,55 +96,68 @@ def generate_plan(data: dict, db: Session = Depends(get_db), admin=Depends(get_c
     
     # Generate plan using AI
     plan_data = generate_nutrition_plan(client_data, food_list)
-    
-    # Save to database
+
+    # ── حفظ كل الماكروز في الداتابيز ──
+    import json as _json
     new_plan = NutritionPlan(
         user_id=client_id,
         goal=goal,
         daily_calories=plan_data.get("daily_calories", 0),
+        total_protein=plan_data.get("total_protein"),
+        total_carbs=plan_data.get("total_carbs"),
+        total_fats=plan_data.get("total_fats"),
+        caloric_deficit=plan_data.get("caloric_deficit"),
+        bmr_used=plan_data.get("bmr"),
+        workout_day_calories=plan_data.get("workout_day_calories"),
+        rest_day_calories=plan_data.get("rest_day_calories"),
+        admin_notes=plan_data.get("admin_notes", ""),
         status="pending",
         is_active=False
     )
     db.add(new_plan)
     db.flush()
-    
-    # Save meals — now with alternatives support
-    import json as _json
-    for meal in plan_data.get("meals", []):
-        # Build items string from first alternative (for backward compat)
-        alternatives = meal.get("alternatives", [])
-        if alternatives:
-            first_alt = alternatives[0]
-            items_str = " + ".join([
-                f"{item['food_name']} ({item['quantity_grams']}g)"
-                for item in first_alt.get("items", [])
-            ])
-        else:
-            # Fallback for old format
-            items_str = meal.get("items", "")
 
-        # Store full alternatives JSON in items field for rich display
+    # ── حفظ الوجبات ──
+    for meal in plan_data.get("meals", []):
+        alternatives = meal.get("alternatives", [])
         full_data = _json.dumps({
             "meal_time": meal.get("meal_time", ""),
+            "meal_role": meal.get("meal_role", ""),
             "alternatives": alternatives
         }, ensure_ascii=False)
 
         new_meal = Meal(
             plan_id=new_plan.id,
             name=meal.get("meal_name", "وجبة"),
-            items=full_data,  # JSON with all alternatives
+            items=full_data,
             calories=meal.get("total_calories", 0)
         )
         db.add(new_meal)
-    
+
     db.commit()
     db.refresh(new_plan)
-    
+
+    # ── Admin data (كل التفاصيل) ──
+    admin_data = {
+        "plan_id": new_plan.id,
+        "daily_calories": plan_data.get("daily_calories"),
+        "workout_day_calories": plan_data.get("workout_day_calories"),
+        "rest_day_calories": plan_data.get("rest_day_calories"),
+        "caloric_deficit": plan_data.get("caloric_deficit"),
+        "bmr": plan_data.get("bmr"),
+        "total_protein": plan_data.get("total_protein"),
+        "total_carbs": plan_data.get("total_carbs"),
+        "total_fats": plan_data.get("total_fats"),
+        "admin_notes": plan_data.get("admin_notes"),
+    }
+
     return {
         "plan_id": new_plan.id,
         "client_name": user.full_name,
         "goal": goal,
-        "plan": plan_data,
-        "message": "تم توليد النظام الغذائي بنجاح! في انتظار موافقة المدرب."
+        "plan": plan_data,          # كل التفاصيل — للأدمن
+        "admin_data": admin_data,   # ملخص الماكروز — للأدمن
+        "message": "تم توليد النظام الغذائي بنجاح!"
     }
+
 

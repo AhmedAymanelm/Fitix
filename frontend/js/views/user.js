@@ -1332,3 +1332,108 @@ views['u-notifs'] = async () => {
   }
   `;
 };
+
+
+/* ══════════════════════════════════════════
+   نظام التغذية — للعميل فقط (بدون ماكروز)
+══════════════════════════════════════════ */
+views['u-nutrition'] = async () => {
+  let plan = null;
+  try {
+    plan = await apiFetch('/workouts/my-nutrition');
+  } catch(e) {}
+
+  if (!plan || !plan.meals || plan.meals.length === 0) {
+    return `
+    <div class="page-head"><h1>🥗 نظام التغذية</h1><p>خطتك الغذائية من الكابتن</p></div>
+    <div style="text-align:center;padding:60px 20px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px">
+      <div style="font-size:56px;margin-bottom:16px">🥗</div>
+      <h3 style="color:var(--text);margin-bottom:8px">لسه ما جالكش نظام غذائي</h3>
+      <p style="color:var(--text-dim)">الكابتن لسه بيجهز نظامك الغذائي. هتتنوتفاي لما يتجهز!</p>
+    </div>`;
+  }
+
+  // ترتيب الوجبات حسب الوقت
+  const mealOrder = ['فطار', 'سناك', 'غداء', 'عشاء', 'التمرين'];
+
+  const gs = window._gymSettings || {};
+  const logoUrl = gs.logo_url || null;
+  const gymName = gs.gym_name || 'Fitix';
+  const today = new Date().toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  // ── بناء الـ Cards بالديزاين المطلوب ──
+  const mealsCards = plan.meals.map(m => {
+    let parsed = null;
+    try { parsed = JSON.parse(m.items); } catch(e) {}
+    const alts = parsed?.alternatives || [];
+    const mealTime = parsed?.meal_time || '';
+    const mealRole = parsed?.meal_role || '';
+
+    // عرض الخيارات للعميل — بدون أرقام كالوري/ماكروز
+    const altsHtml = alts.map((alt, idx) => `
+      <div style="margin-bottom:12px">
+        <div style="font-size:12px;font-weight:700;color:var(--primary);margin-bottom:6px;display:flex;align-items:center;gap:6px">
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--primary);color:#000;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900">${idx+1}</span>
+          ${alt.alternative_label || 'خيار ' + (idx+1)}
+        </div>
+        <div style="padding-right:30px">
+          ${(alt.items||[]).map(item => `
+            <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed var(--border)">
+              <span style="color:var(--primary);font-size:14px">•</span>
+              <span style="font-size:13px;color:var(--text)">${item.food_name}</span>
+              <span style="font-size:12px;color:var(--text-dim);margin-right:auto">${item.quantity_grams}g</span>
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+
+    return `
+    <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px;box-shadow:0 2px 12px rgba(0,0,0,0.15)">
+      <!-- Meal Header -->
+      <div style="background:var(--primary);padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:16px;font-weight:800;color:#000">${m.name}</div>
+        <div style="font-size:12px;color:rgba(0,0,0,0.6)">${mealTime}${mealRole ? ' · ' + mealRole : ''}</div>
+      </div>
+      <!-- Meal Body -->
+      <div style="padding:16px">
+        ${alts.length > 0 ? altsHtml : `<p style="color:var(--text-dim);font-size:13px">${m.items}</p>`}
+      </div>
+    </div>`;
+  });
+
+  // ملاحظات للعميل (بدون ماكروز)
+  const clientNotes = plan.client_notes || plan.notes || '';
+  const workoutNotes = plan.workout_nutrition_notes || '';
+
+  return `
+  <!-- Header بالستايل بتاع الديزاين -->
+  <div style="background:linear-gradient(135deg,var(--primary) 0%,#96c728 100%);border-radius:20px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden">
+    <div style="position:absolute;top:-20px;left:-20px;width:120px;height:120px;background:rgba(255,255,255,0.08);border-radius:50%"></div>
+    <div style="position:absolute;bottom:-30px;right:20px;width:80px;height:80px;background:rgba(255,255,255,0.06);border-radius:50%"></div>
+    <div style="position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <h1 style="color:#000;font-size:22px;font-weight:900;margin-bottom:4px">🥗 نظام التغذية</h1>
+        <p style="color:rgba(0,0,0,0.65);font-size:13px">خطتك الغذائية من الكابتن — ${today}</p>
+      </div>
+      ${logoUrl ? `<img src="${logoUrl}" style="height:48px;object-fit:contain;border-radius:8px">` :
+        `<div style="font-size:26px;font-weight:900;color:#000">${gymName}</div>`}
+    </div>
+  </div>
+
+  <!-- الوجبات -->
+  ${mealsCards.join('')}
+
+  <!-- ملاحظات التمرين والتغذية -->
+  ${workoutNotes ? `
+  <div style="background:var(--surface-2);border:1px solid var(--border);border-right:4px solid var(--cyan);border-radius:12px;padding:16px;margin-bottom:16px">
+    <h4 style="color:var(--cyan);margin-bottom:8px">🏋️ التغذية والتمرين</h4>
+    <p style="font-size:13px;color:var(--text);line-height:1.7">${workoutNotes}</p>
+  </div>` : ''}
+
+  <!-- ملاحظات عامة -->
+  ${clientNotes ? `
+  <div style="background:var(--surface-2);border:1px solid var(--border);border-right:4px solid var(--primary);border-radius:12px;padding:16px">
+    <h4 style="color:var(--primary);margin-bottom:8px">💡 نصائح الكابتن</h4>
+    <p style="font-size:13px;color:var(--text);line-height:1.7">${clientNotes}</p>
+  </div>` : ''}
+  `;
+};

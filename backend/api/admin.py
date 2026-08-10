@@ -699,8 +699,17 @@ def get_plan_details(plan_id: int, db: Session = Depends(get_db)):
         "client_name": plan.user.full_name if plan.user else "",
         "client_id": plan.user_id,
         "goal": plan.goal,
-        "daily_calories": plan.daily_calories,
         "status": plan.status,
+        # ── الماكروز (للأدمن فقط) ──
+        "daily_calories": plan.daily_calories,
+        "total_protein": plan.total_protein,
+        "total_carbs": plan.total_carbs,
+        "total_fats": plan.total_fats,
+        "caloric_deficit": plan.caloric_deficit,
+        "bmr_used": plan.bmr_used,
+        "workout_day_calories": plan.workout_day_calories,
+        "rest_day_calories": plan.rest_day_calories,
+        "admin_notes": plan.admin_notes,
         "meals": meals_data
     }
 

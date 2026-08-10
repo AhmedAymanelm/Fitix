@@ -12,10 +12,21 @@ class NutritionPlan(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    goal: Mapped[str] = mapped_column(String(50), nullable=False)                # "تنشيف", "تضخيم"
+    goal: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    # ─── الأرقام الغذائية (للأدمن فقط) ───
     daily_calories: Mapped[int] = mapped_column(Integer, nullable=False)
-    status: Mapped[str] = mapped_column(String(20), default="pending")           # "pending", "approved"
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)               # هل ده النظام الحالي؟
+    total_protein: Mapped[float | None] = mapped_column(nullable=True)   # جرام بروتين يومي
+    total_carbs: Mapped[float | None] = mapped_column(nullable=True)     # جرام كارب يومي
+    total_fats: Mapped[float | None] = mapped_column(nullable=True)      # جرام دهون يومي
+    caloric_deficit: Mapped[int | None] = mapped_column(Integer, nullable=True)  # موجب=عجز / سالب=زيادة
+    bmr_used: Mapped[int | None] = mapped_column(Integer, nullable=True)         # BMR المستخدم في الحساب
+    workout_day_calories: Mapped[int | None] = mapped_column(Integer, nullable=True)  # سعرات يوم تمرين
+    rest_day_calories: Mapped[int | None] = mapped_column(Integer, nullable=True)     # سعرات يوم راحة
+    admin_notes: Mapped[str | None] = mapped_column(String(2000), nullable=True)      # ملاحظات للأدمن بس
+
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

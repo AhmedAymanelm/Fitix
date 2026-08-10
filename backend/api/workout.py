@@ -286,3 +286,61 @@ def get_workout_history(user_id: int, current_user: User = Depends(get_current_u
             "session_data": sd
         })
     return res
+
+
+@router.get("/my-nutrition")
+def get_my_nutrition(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """جلب النظام الغذائي النشط للعميل — بدون ماكروز (للعميل فقط)."""
+    from models.nutrition import NutritionPlan, Meal
+    import json as _json
+
+    plan = db.query(NutritionPlan).filter(
+        NutritionPlan.user_id == current_user.id,
+        NutritionPlan.is_active == True,
+        NutritionPlan.status == "approved"
+    ).order_by(NutritionPlan.created_at.desc()).first()
+
+    if not plan:
+        return {"meals": [], "client_notes": "", "workout_nutrition_notes": ""}
+
+    meals_data = []
+    for m in plan.meals:
+        # نُرسل بيانات الوجبة بدون سعرات أو ماكروز
+        try:
+            parsed = _json.loads(m.items)
+            # نحذف الأرقام من الـ alternatives
+            clean_alts = []
+            for alt in parsed.get("alternatives", []):
+                clean_items = [
+                    {
+                        "food_name": item.get("food_name", ""),
+                        "quantity_grams": item.get("quantity_grams", 0),
+                        # لا نُرسل calories/protein/carbs/fats
+                    }
+                    for item in alt.get("items", [])
+                ]
+                clean_alts.append({
+                    "alternative_label": alt.get("alternative_label", ""),
+                    "items": clean_items,
+                    # لا نُرسل total_calories/protein/carbs/fats
+                })
+            meals_data.append({
+                "id": m.id,
+                "name": m.name,
+                "items": _json.dumps({
+                    "meal_time": parsed.get("meal_time", ""),
+                    "meal_role": parsed.get("meal_role", ""),
+                    "alternatives": clean_alts
+                }, ensure_ascii=False),
+            })
+        except Exception:
+            meals_data.append({"id": m.id, "name": m.name, "items": m.items})
+
+    return {
+        "plan_id": plan.id,
+        "goal": plan.goal,
+        "meals": meals_data,
+        # ملاحظات للعميل فقط — بدون أرقام
+        "client_notes": plan.admin_notes or "",   # الـ admin_notes يحتوي على ملاحظات عامة
+        "workout_nutrition_notes": "",             # هيتملى من الـ AI في المرة الجاية
+    }
