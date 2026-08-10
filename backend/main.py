@@ -58,11 +58,21 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 # ── Serve Frontend (for Railway — single service) ──
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frontend")
 if os.path.exists(FRONTEND_DIR):
-    from fastapi.responses import FileResponse
+    from fastapi.responses import HTMLResponse
 
     @app.get("/", tags=["Frontend"])
     def serve_index():
-        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+        index_path = os.path.join(FRONTEND_DIR, "index.html")
+        with open(index_path, "r", encoding="utf-8") as f:
+            html = f.read()
+
+        # Load the responsive layer after the main stylesheet so mobile rules
+        # always win over legacy desktop rules and inline responsive blocks.
+        responsive_link = '<link rel="stylesheet" href="/css/responsive.css">'
+        if "/css/responsive.css" not in html:
+            html = html.replace("</head>", f"{responsive_link}\n</head>", 1)
+
+        return HTMLResponse(content=html)
 
     # Mount frontend static assets (css, js, etc.)
     app.mount("/css", StaticFiles(directory=os.path.join(FRONTEND_DIR, "css")), name="css")
