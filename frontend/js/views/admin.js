@@ -1786,12 +1786,21 @@ async function saveGymBranding() {
     });
     // تطبيق فوري
     document.documentElement.style.setProperty('--primary', color);
+
+    // تحديث اسم الجيم فوراً في كل الأماكن
+    const appBrand = document.getElementById('appBrandName');
+    if (appBrand) appBrand.textContent = name;
+    const loginBrand = document.getElementById('loginBrandName');
+    if (loginBrand) loginBrand.textContent = name;
+    document.title = name + ' — نظام إدارة الجيم';
+
     await loadGymSettings();
     toast('✅ تم حفظ هوية الجيم بنجاح!');
   } catch(e) {
     toast('❌ ' + e.message);
   }
 }
+
 
 async function previewAndUploadLogo(input) {
   if (!input.files || !input.files[0]) return;

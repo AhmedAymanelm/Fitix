@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FORM — نظام إدارة الجيم بالذكاء الاصطناعي</title>
+<title>Fitix — نظام إدارة الجيم بالذكاء الاصطناعي</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
@@ -19,7 +20,9 @@
 <!-- ============ LOGIN SCREEN ============ -->
 <div id="loginWrap">
   <div class="login-topbar">
-    <div class="brand"><span class="dot"></span>FORM<small>Fitness OS</small></div>
+    <div class="brand"><span class="dot"></span><span id="loginBrandName">Fitix</span><small>Fitness OS</small></div>
+
+
     <button class="login-role-toggle" id="roleToggleBtn" onclick="toggleLoginRole()">🧑‍💼 أنا ادمن</button>
   </div>
   <div class="login-screen">
@@ -46,7 +49,9 @@
 <!-- ============ APP SHELL (after login) ============ -->
 <div class="app-shell" id="appShell">
   <div class="topbar">
-    <div class="brand"><span class="dot"></span>FORM<small>Fitness OS</small></div>
+    <div class="brand"><span class="dot"></span><span id="appBrandName">Fitix</span><small>Fitness OS</small></div>
+
+
     <div class="topbar-right" style="display:flex; align-items:center; gap:15px;">
       <div id="liveClockWidget" style="font-size:13px; color:var(--text-dim); background:var(--surface-2); padding:6px 12px; border-radius:8px; border:1px solid var(--border); display:flex; gap:10px; align-items:center;">
           <span id="liveDateStr"></span>

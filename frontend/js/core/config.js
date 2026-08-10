@@ -114,22 +114,31 @@ async function loadGymSettings() {
   try {
     const s = await apiFetch('/gym-settings');
     window._gymSettings = s;
-    // تطبيق اللون الأساسي
+
+    const name = s.gym_name || 'Fitix';
+
+    // ── تطبيق اللون الأساسي ──
     if (s.primary_color) {
       document.documentElement.style.setProperty('--primary', s.primary_color);
     }
-    // تحديث الـ topbar brand
-    const brandEls = document.querySelectorAll('.brand');
-    brandEls.forEach(el => {
-      const small = el.querySelector('small');
-      if (small) small.textContent = s.gym_name || 'Fitness OS';
-    });
+
+    // ── تحديث اسم الجيم في كل الأماكن ──
+    const appBrand = document.getElementById('appBrandName');
+    if (appBrand) appBrand.textContent = name;
+
+    const loginBrand = document.getElementById('loginBrandName');
+    if (loginBrand) loginBrand.textContent = name;
+
+    // تحديث عنوان الصفحة
+    document.title = name + ' — نظام إدارة الجيم';
+
     // إعادة رسم الـ sidebar
     renderSidebar();
   } catch(e) {
-    window._gymSettings = { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
+    window._gymSettings = { gym_name: 'Fitix', primary_color: '#c8ff3d', logo_url: null };
   }
 }
+
 
 
 // Auto-detect backend URL:
