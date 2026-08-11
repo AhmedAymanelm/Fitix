@@ -133,6 +133,53 @@ function renderSidebar(){
   renderMobileNav(nav);
 }
 
+// ── Chat Unread Badge ──
+let _chatBadgeInterval = null;
+
+async function updateChatBadge() {
+  try {
+    const convos = await apiFetch('/chat/conversations');
+    const totalUnread = convos.reduce((sum, c) => sum + (c.unread || 0), 0);
+
+    // Update sidebar badge
+    const chatNavItem = document.querySelector('.nav-item[data-nav="a-chat"]');
+    if (chatNavItem) {
+      const existingBadge = chatNavItem.querySelector('.nav-badge');
+      if (existingBadge) existingBadge.remove();
+      if (totalUnread > 0) {
+        chatNavItem.insertAdjacentHTML('beforeend', `<span class="nav-badge" style="background:#cda434;color:#000;">${totalUnread}</span>`);
+      }
+    }
+
+    // Update mobile nav badge if present
+    const mobileChatItem = document.querySelector('.mobile-nav-item[data-nav="a-chat"]');
+    if (mobileChatItem) {
+      const existingMBadge = mobileChatItem.querySelector('.mobile-badge');
+      if (existingMBadge) existingMBadge.remove();
+      if (totalUnread > 0) {
+        mobileChatItem.style.position = 'relative';
+        mobileChatItem.insertAdjacentHTML('beforeend', `<span class="mobile-badge" style="position:absolute;top:4px;right:4px;background:#cda434;color:#000;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px;">${totalUnread}</span>`);
+      }
+    }
+
+    // Also update user-side chat badge
+    const userChatNavItem = document.querySelector('.nav-item[data-nav="u-chat"]');
+    if (userChatNavItem) {
+      const existingBadge = userChatNavItem.querySelector('.nav-badge');
+      if (existingBadge) existingBadge.remove();
+      if (totalUnread > 0) {
+        userChatNavItem.insertAdjacentHTML('beforeend', `<span class="nav-badge" style="background:#cda434;color:#000;">${totalUnread}</span>`);
+      }
+    }
+  } catch(e) {}
+}
+
+function startChatBadgePolling() {
+  updateChatBadge();
+  if (_chatBadgeInterval) clearInterval(_chatBadgeInterval);
+  _chatBadgeInterval = setInterval(updateChatBadge, 15000);
+}
+
 
 function renderMobileNav(nav) {
   const mobileNav = document.getElementById('mobileNav');

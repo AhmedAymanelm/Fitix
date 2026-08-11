@@ -361,6 +361,9 @@ views['a-chat'] = async () => {
   const convos = await apiFetch('/chat/conversations');
   const isMobile = window.innerWidth < 700;
   
+  // Update sidebar badge after loading (will recalculate unread)
+  setTimeout(updateChatBadge, 500);
+  
   // On desktop, auto-select first conversation if none selected
   if (convos.length > 0 && !activeChatUserId && !isMobile) {
     activeChatUserId = convos[0].user_id;

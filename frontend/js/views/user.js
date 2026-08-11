@@ -1238,6 +1238,10 @@ views['u-chat'] = async () => {
   const msgs = await apiFetch('/chat/1'); // Fetch chat with admin (ID: 1)
   const lastId = msgs.length > 0 ? msgs[msgs.length - 1].id : 0;
   
+  // Refresh badge count (should drop to 0 since messages are now read)
+  setTimeout(updateChatBadge, 500);
+
+  
   const html = `
   <div class="page-head"><h1>المحادثة مع الكابتن</h1><p>لو عندك استفسار في التمرين أو الأكل، الكابتن هنا!</p></div>
   <div class="ai-chat-wrap" style="height:calc(100dvh - 160px); min-height:400px">

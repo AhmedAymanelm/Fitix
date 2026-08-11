@@ -274,6 +274,8 @@ async function markAllNotifsRead() {
 function startNotifPolling() {
   loadNotifications();
   setInterval(loadNotifications, 60000);
+  // Start chat badge polling
+  startChatBadgePolling();
   // Browser push permission request
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
