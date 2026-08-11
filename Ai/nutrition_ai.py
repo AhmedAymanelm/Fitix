@@ -39,17 +39,40 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
 
     try:
         client = genai.Client(api_key=api_key)
-        print(f"[AI] Calling Gemini API with model gemini-2.0-flash, food items: {len(food_items)}")
+        print(f"[AI] Calling Gemini API, food items: {len(food_items)}")
         
-        response = client.models.generate_content(
-            model="gemini-1.5-flash-002",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=NutritionPlanOutput,
-                temperature=0.7,
-            )
-        )
+        models_to_try = [
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro"
+        ]
+        
+        response = None
+        last_error = None
+        
+        for model_name in models_to_try:
+            try:
+                print(f"[AI] Trying model {model_name}...")
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=NutritionPlanOutput,
+                        temperature=0.7
+                    )
+                )
+                break # Success
+            except Exception as e:
+                last_error = str(e)
+                if "429" in last_error or "RESOURCE_EXHAUSTED" in last_error:
+                    raise
+                print(f"[AI] Model {model_name} failed: {last_error}")
+                continue
+                
+        if not response:
+            raise ValueError(f"فشل توليد النظام الغذائي بسبب إصدار الموديل. آخر خطأ: {last_error}")
         
         print(f"[AI] Gemini response received, length: {len(response.text)}")
         result = json.loads(response.text)

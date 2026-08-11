@@ -34,14 +34,36 @@ def parse_inbody_image(image_bytes: bytes) -> dict:
         
         prompt = get_inbody_prompt()
         
-        response = client.models.generate_content(
-            model="gemini-1.5-flash-002",
-            contents=[img, prompt],
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                temperature=0.1
-            )
-        )
+        models_to_try = [
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro"
+        ]
+        
+        response = None
+        last_error = None
+        
+        for model_name in models_to_try:
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=[img, prompt],
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.1
+                    )
+                )
+                break # Success!
+            except Exception as e:
+                last_error = str(e)
+                if "429" in last_error or "RESOURCE_EXHAUSTED" in last_error:
+                    raise # Don't fallback on rate limit
+                print(f"[AI] Model {model_name} failed: {last_error}")
+                continue
+                
+        if not response:
+            raise ValueError(f"فشل التحليل بسبب عدم تطابق إصدار الموديل. آخر خطأ: {last_error}")
         
         # Clean up any potential markdown formatting if returned
         raw_text = response.text.strip()
