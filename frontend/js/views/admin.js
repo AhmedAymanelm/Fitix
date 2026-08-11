@@ -354,44 +354,78 @@ views['a-chat'] = async () => {
     activeChatUserId = convos[0].user_id;
   }
   
-  let chatMainHtml = '<div class="chat-main" style="display:flex;align-items:center;justify-content:center;color:var(--text-dim)">اختر محادثة</div>';
+  let chatMainHtml = `
+    <div class="chat-main chat-empty-state">
+      <div class="chat-empty-icon">💬</div>
+      <div class="chat-empty-title">اختر محادثة</div>
+      <div class="chat-empty-sub">اختر عميل من القائمة لتبدأ المحادثة</div>
+    </div>`;
   
   if (activeChatUserId) {
     const activeConvo = convos.find(c => c.user_id === activeChatUserId);
     const msgs = await apiFetch(`/chat/${activeChatUserId}`);
+    const initial = activeConvo ? activeConvo.name[0].toUpperCase() : '?';
+    const name = activeConvo ? activeConvo.name : '';
     
     chatMainHtml = `
     <div class="chat-main">
-      <div class="chat-head"><div class="client-avatar" style="width:30px;height:30px;font-size:11px">${activeConvo ? activeConvo.name[0] : ''}</div> ${activeConvo ? activeConvo.name : ''}</div>
-      <div class="chat-body" id="chatBody">
-        ${msgs.map(m => `<div class="bubble ${m.is_me ? 'out' : 'in'}">${m.content}</div>`).join('')}
+      <div class="chat-head">
+        <button class="chat-back-btn" onclick="activeChatUserId=null; goView('a-chat')" title="رجوع">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div class="chat-head-avatar">${initial}</div>
+        <div class="chat-head-info">
+          <div class="chat-head-name">${name}</div>
+          <div class="chat-head-status">متصل الآن</div>
+        </div>
       </div>
-      <div class="chat-input">
-        <input id="chatInput" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendChat()">
-        <button class="btn btn-primary" onclick="sendChat()">إرسال</button>
+      <div class="chat-body" id="chatBody">
+        ${msgs.length === 0 ? `<div class="chat-no-msgs">لا توجد رسائل بعد — ابدأ المحادثة! 👋</div>` : ''}
+        ${msgs.map(m => `
+          <div class="bubble-wrap ${m.is_me ? 'out-wrap' : 'in-wrap'}">
+            <div class="bubble ${m.is_me ? 'out' : 'in'}">${m.content}</div>
+            <div class="bubble-time">${m.is_me ? 'أنت' : name.split(' ')[0]}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="chat-input-area">
+        <input id="chatInput" class="chat-text-input" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key==='Enter') sendChat()">
+        <button class="chat-send-btn" onclick="sendChat()">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
       </div>
     </div>`;
   }
   
+  const isMobileView = activeChatUserId !== null;
+
   return `
   <div class="page-head"><h1>المحادثات</h1><p>كلم عملاءك مباشرة من هنا</p></div>
-  <div class="chat-wrap">
-    <div class="chat-list">
-      ${convos.length === 0 ? '<div style="padding:20px;text-align:center;color:var(--text-dim)">مفيش محادثات</div>' : ''}
+  <div class="chat-wrap ${isMobileView ? 'chat-in-convo' : ''}">
+    <div class="chat-list ${isMobileView ? 'chat-list-hidden-mobile' : ''}">
+      ${convos.length === 0 ? `
+        <div class="chat-list-empty">
+          <div style="font-size:40px;margin-bottom:12px">💬</div>
+          <div style="font-weight:700;margin-bottom:4px">لا توجد محادثات</div>
+          <div style="font-size:12px;color:var(--text-dimmer)">ستظهر هنا بمجرد تواصل العملاء</div>
+        </div>
+      ` : ''}
       ${convos.map(c => `
-        <div class="chat-item ${c.user_id === activeChatUserId ? 'active' : ''}" onclick="activeChatUserId=${c.user_id}; goView('a-chat')">
-          <div class="client-avatar" style="width:34px;height:34px;font-size:11px">${c.name[0]}</div>
-          <div style="flex:1;min-width:0">
-            <div class="ci-name">${c.name}</div>
-            <div class="ci-msg">${c.last_message}</div>
+        <div class="chat-item ${c.user_id === activeChatUserId ? 'active' : ''}" 
+             onclick="activeChatUserId=${c.user_id}; goView('a-chat')">
+          <div class="chat-item-avatar">${c.name[0].toUpperCase()}</div>
+          <div class="chat-item-info">
+            <div class="chat-item-name">${c.name}</div>
+            <div class="chat-item-msg">${c.last_message || 'لا توجد رسائل'}</div>
           </div>
-          ${c.unread ? `<span class="nav-badge">${c.unread}</span>` : ''}
+          ${c.unread ? `<span class="chat-unread-badge">${c.unread}</span>` : ''}
         </div>`).join('')}
     </div>
     ${chatMainHtml}
   </div>
   `;
 }
+
 
 async function sendChat(){
   if(!activeChatUserId) return;
@@ -400,7 +434,16 @@ async function sendChat(){
   if(!txt) return;
   
   const body = document.getElementById('chatBody');
-  body.insertAdjacentHTML('beforeend', `<div class="bubble out">${txt}</div>`);
+  // Remove empty state if exists
+  const noMsgs = body.querySelector('.chat-no-msgs');
+  if (noMsgs) noMsgs.remove();
+  
+  body.insertAdjacentHTML('beforeend', `
+    <div class="bubble-wrap out-wrap">
+      <div class="bubble out">${txt}</div>
+      <div class="bubble-time">أنت</div>
+    </div>
+  `);
   inp.value='';
   body.scrollTop = body.scrollHeight;
   
