@@ -1527,6 +1527,7 @@ window.printUserNutrition = async function() {
     const m4 = plan.meals[3];
     const clientNotes = plan.client_notes || plan.notes || plan.goal || '';
 
+    const templateUrl = window.location.origin + '/assets/images/template.jpg';
     const printWin = window.open('', '_blank');
     printWin.document.write(`
       <html dir="rtl">
@@ -1540,7 +1541,7 @@ window.printUserNutrition = async function() {
             width: 210mm;
             height: 297mm;
             position: relative;
-            background-image: url('assets/images/template.jpg');
+            background-image: url('${templateUrl}');
             background-size: 100% 100%;
             background-repeat: no-repeat;
             background-position: center;
@@ -1559,9 +1560,9 @@ window.printUserNutrition = async function() {
         </style>
       </head>
       <body>
-        <div class="no-print" style="padding:20px;background:#fff3cd;color:#856404;text-align:center;font-size:18px;">
-          <b>اضغط Ctrl+P أو ⌘+P للطباعة / التحميل كـ PDF</b><br>
-          <button onclick="window.print()" style="margin-top:10px;padding:10px 30px;font-size:16px;background:#4caf50;color:#fff;border:none;border-radius:8px;cursor:pointer;">🖨️ طباعة / تحميل</button>
+        <div class="no-print" style="padding:15px;background:#d4edda;color:#155724;text-align:center;font-size:16px;">
+          ✅ جاهز للطباعة — اضغط Ctrl+P أو ⌘+P<br>
+          <button onclick="window.print()" style="margin-top:10px;padding:10px 30px;font-size:16px;background:#28a745;color:#fff;border:none;border-radius:8px;cursor:pointer;">🖨️ طباعة / تحميل PDF</button>
         </div>
         <div class="page">
           <div class="abs name">${me.full_name || me.name || 'العميل'}</div>

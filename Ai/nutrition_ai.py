@@ -10,8 +10,10 @@ from Ai.mocks.nutrition_mock import get_mock_nutrition_plan
 try:
     from google import genai
     from google.genai import types
+    GENAI_AVAILABLE = True
 except ImportError:
     genai = None
+    GENAI_AVAILABLE = False
 
 def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
     """
@@ -21,7 +23,10 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
     """
     api_key = os.getenv("GEMINI_API_KEY")
     
-    if not api_key or not genai:
+    print(f"[AI] GEMINI_API_KEY set: {bool(api_key)}, genai available: {GENAI_AVAILABLE}")
+    
+    if not api_key or not GENAI_AVAILABLE:
+        print("[AI] Falling back to mock plan (no API key or genai not installed)")
         return get_mock_nutrition_plan(client_data)
     
     # Build the food catalog string
@@ -34,6 +39,7 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
 
     try:
         client = genai.Client(api_key=api_key)
+        print(f"[AI] Calling Gemini API with model gemini-2.0-flash, food items: {len(food_items)}")
         
         response = client.models.generate_content(
             model="gemini-2.0-flash",
@@ -45,9 +51,12 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
             )
         )
         
+        print(f"[AI] Gemini response received, length: {len(response.text)}")
         result = json.loads(response.text)
         return result
         
     except Exception as e:
-        print(f"Gemini API error: {e}")
-        return get_mock_nutrition_plan(client_data)
+        print(f"[AI] Gemini API error: {type(e).__name__}: {e}")
+        # Re-raise so admin sees the real error instead of getting a silent mock
+        raise RuntimeError(f"Gemini API فشل: {type(e).__name__}: {e}")
+

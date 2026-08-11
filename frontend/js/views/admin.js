@@ -2556,6 +2556,7 @@ window.printClientReport = async function(clientId) {
         const m4 = activePlan.meals[3];
 
         const today = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        const templateUrl = window.location.origin + '/assets/images/template.jpg';
 
         const printWin = window.open('', '_blank');
         printWin.document.write(`
@@ -2570,7 +2571,7 @@ window.printClientReport = async function(clientId) {
                         width: 210mm; 
                         height: 297mm; 
                         position: relative; 
-                        background-image: url('assets/images/template.jpg');
+                        background-image: url('${templateUrl}');
                         background-size: 100% 100%; 
                         background-repeat: no-repeat;
                         background-position: center;
@@ -2594,10 +2595,9 @@ window.printClientReport = async function(clientId) {
                 </style>
             </head>
             <body>
-                <!-- رسالة تحذيرية بتظهر بس على الشاشة ومش في الطباعة -->
-                <div class="no-print" style="padding:20px; background:#fff3cd; color:#856404; text-align:center; font-size:18px;">
-                    يرجى التأكد من رفع صورة القالب باسم <b>template.jpg</b> داخل مجلد <b>frontend/assets/images/</b> لكي تظهر الخلفية بشكل صحيح.<br>
-                    <button onclick="window.print()" style="margin-top:10px; padding:10px 20px; font-size:16px; cursor:pointer;">اضغط هنا للطباعة الآن</button>
+                <div class="no-print" style="padding:15px; background:#d4edda; color:#155724; text-align:center; font-size:16px;">
+                    ✅ جاهز للطباعة — اضغط Ctrl+P أو ⌘+P<br>
+                    <button onclick="window.print()" style="margin-top:10px; padding:10px 20px; font-size:16px; background:#28a745; color:#fff; border:none; border-radius:8px; cursor:pointer;">🖨️ طباعة / تحميل PDF</button>
                 </div>
                 
                 <div class="page">
