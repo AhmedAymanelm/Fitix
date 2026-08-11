@@ -20,8 +20,8 @@ function toggleLoginRole(){
 }
 
 async function doLogin(){
-  const user = document.getElementById('loginUser').value.trim();
-  const pass = document.getElementById('loginPass').value;
+  const user = document.getElementById('loginUser').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPass').value.trim();
   const btn = document.querySelector('.login-btn');
   const originalText = btn.innerText;
   
