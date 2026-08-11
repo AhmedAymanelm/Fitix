@@ -69,6 +69,13 @@ def upgrade_db_schema():
             except Exception as e:
                 if "already exists" not in str(e) and "Duplicate column" not in str(e):
                     print(f"Error adding {col} to inbody_readings: {e}")
+        
+        # Alter meals.items from VARCHAR(500) to TEXT to support large JSON
+        try:
+            conn.execute(text("ALTER TABLE meals ALTER COLUMN items TYPE TEXT"))
+            print("✅ meals.items changed to TEXT")
+        except Exception as e:
+            print(f"meals.items alter: {e}")
 
 upgrade_db_schema()
 

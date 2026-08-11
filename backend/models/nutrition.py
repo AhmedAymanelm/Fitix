@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import String, Integer, DateTime, ForeignKey, func, Boolean
+from sqlalchemy import String, Integer, DateTime, ForeignKey, func, Boolean, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from config.database import Base
@@ -45,7 +45,7 @@ class Meal(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     plan_id: Mapped[int] = mapped_column(ForeignKey("nutrition_plans.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(100), nullable=False)               # "الفطار", "سناك 1"
-    items: Mapped[str] = mapped_column(String(500), nullable=False)              # "4 بياض بيض + شوفان + موزة"
+    items: Mapped[str] = mapped_column(Text, nullable=False)                     # JSON with meal alternatives
     calories: Mapped[int] = mapped_column(Integer, nullable=False)
 
     # Relationships
