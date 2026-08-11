@@ -413,36 +413,41 @@ body::before{
   #liveClockWidget{display:none !important;}
   .sidebar{
     position:fixed;
-    right:0;
-    top:64px;
+    right:-320px;
+    top:0;
     bottom:0;
-    z-index:60;
-    width:min(84vw, 300px);
-    background:linear-gradient(180deg, rgba(18,19,22,.98), rgba(13,14,16,.98));
+    z-index:1300;
+    width:280px;
+    max-width:85vw;
+    background:linear-gradient(180deg, rgba(18,19,22,1), rgba(13,14,16,1));
     border-left:1px solid var(--border);
     border-right:none;
     border-radius:24px 0 0 24px;
-    box-shadow:-22px 0 50px rgba(0,0,0,.42);
-    transform:translateX(110%);
-    transition:transform .25s ease;
+    box-shadow:-10px 0 40px rgba(0,0,0,0.8);
+    transition:right .3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y:auto;
     -webkit-overflow-scrolling:touch;
+    padding-top: 64px;
   }
-  .sidebar.open{transform:translateX(0);}
+  .sidebar.open{
+    right:0 !important;
+  }
   .sidebar-backdrop{
     position:fixed;
-    inset:64px 0 0 0;
-    background:rgba(0,0,0,.42);
-    backdrop-filter:blur(2px);
-    z-index:55;
+    inset:0;
+    background:rgba(0,0,0,0.6);
+    backdrop-filter:blur(3px);
+    -webkit-backdrop-filter:blur(3px);
+    z-index:1200;
     opacity:0;
     pointer-events:none;
-    transition:opacity .2s ease;
+    transition:opacity .3s ease;
   }
   .sidebar-backdrop.open{
-    opacity:1;
-    pointer-events:auto;
+    opacity:1 !important;
+    pointer-events:auto !important;
   }
+
   .content{padding:18px;}
   .chat-list{width:180px;}
   .grid-4, .grid-3, .grid-2{grid-template-columns:1fr;}
