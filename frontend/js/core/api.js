@@ -55,11 +55,17 @@ async function goView(id){
     el.classList.toggle('active', el.dataset.nav === id)
   );
 
+  // إغلاق القائمة الجانبية في الموبايل عند الضغط على أي صفحة
+  if (typeof closeSidebar === 'function') {
+    closeSidebar();
+  }
+
   const content = document.getElementById('content');
   if(!views[id]){
     content.innerHTML = '<p>قريباً</p>';
     return;
   }
+
   
   content.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-dim)"><span class="pulse-dot"></span> جاري التحميل...</div>';
   

@@ -799,134 +799,49 @@ body::before{
   border: 1px solid var(--border);
 }
 
-
 /* =====================================================
    RESPONSIVE — TABLET & MOBILE
    ===================================================== */
 
 /* ── Tablet (≤ 900px) ── */
 @media (max-width: 900px) {
-  /* Content كامل العرض */
-  .content {
-    padding: 16px 16px 100px;
-    max-width: 100%;
-  }
-
-  /* Topbar أصغر */
-  .topbar {
-    padding: 0 16px;
-    height: 56px;
-  }
-
+  .content { padding: 16px; max-width: 100%; }
+  .topbar { padding: 0 16px; height: 56px; }
   .brand { font-size: 17px; gap: 8px; }
   .brand small { display: none; }
-
-  /* Grids */
   .grid-4, .grid-3 { grid-template-columns: repeat(2, 1fr); }
-
-  /* Page head */
   .page-head h1 { font-size: 20px; }
-
-  /* Live clock أصغر */
   #liveClockWidget { font-size: 11px; padding: 4px 8px; gap: 6px; }
   #liveDateStr { display: none; }
-
-  /* Notification dropdown أصغر */
   .notif-dropdown { width: 290px; right: -60px; }
-
-  /* Shell */
-  .shell { min-height: calc(100vh - 56px); }
 }
 
 /* ── Mobile (≤ 600px) ── */
 @media (max-width: 600px) {
-  /* Grids كلهم column واحد */
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
-
-  /* Content padding */
-  .content { padding: 12px 12px 100px; }
-
-  /* Cards */
+  .content { padding: 12px; }
   .card { padding: 14px; }
   .stat-num { font-size: 24px; }
-
-  /* Topbar */
   .topbar { padding: 0 12px; height: 52px; }
   .brand { font-size: 15px; }
   .brand-dot { display:none; }
   .sidebar-toggle { width:28px; height:28px; border-radius:8px; }
   .sidebar-toggle span { width:13px; }
   #liveClockWidget { display: none; }
-
-  /* Buttons */
   .btn { padding: 8px 14px; font-size: 13px; }
-
-  /* Tables → horizontal scroll */
   table { display: block; overflow-x: auto; white-space: nowrap; }
-
-  /* Page head */
   .page-head { margin-bottom: 16px; }
   .page-head h1 { font-size: 18px; }
   .page-head p { font-size: 12px; }
-
-  /* Inputs */
-  input, select, textarea { font-size: 16px !important; } /* prevent zoom on iOS */
-
-  /* Notification dropdown */
+  input, select, textarea { font-size: 16px !important; }
   .notif-dropdown { width: calc(100vw - 24px); right: -40px; }
-
-  /* Settings inputs */
   .notif-settings-row { flex-direction: column; align-items: flex-start; gap: 8px; }
   .notif-settings-row label { font-size: 13px; }
-
-  /* Workout exercise cards */
   .exercise-grid { grid-template-columns: 1fr !important; }
 }
 
-/* ── Bottom Navigation Bar (mobile) ── */
-@media (max-width: 900px) {
-  .mobile-nav {
-    display: flex;
-  }
-}
+/* Bottom Nav was removed, we use the sidebar drawer now */
 
-.mobile-nav {
-  display: none;
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  z-index: 100;
-  background: rgba(13,14,16,.95);
-  backdrop-filter: blur(16px);
-  border-top: 1px solid var(--border);
-  padding: 8px 4px env(safe-area-inset-bottom);
-  gap: 2px;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.mobile-nav::-webkit-scrollbar { display: none; }
-
-.mobile-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  padding: 6px 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  flex-shrink: 0;
-  min-width: 60px;
-  transition: all 0.15s;
-  border: 1px solid transparent;
-  color: var(--text-dimmer);
-}
-.mobile-nav-item svg { width: 20px; height: 20px; }
-.mobile-nav-item span { font-size: 9px; font-weight: 700; text-align: center; line-height: 1.2; }
-.mobile-nav-item.active {
-  color: var(--primary, #c8ff3d);
-  background: rgba(200,255,61,.08);
-  border-color: rgba(200,255,61,.15);
-}
-.mobile-nav-item:active { transform: scale(0.93); }
 
 /* ── Modal / Overlay adjustments ── */
 @media (max-width: 600px) {
