@@ -146,6 +146,40 @@ def get_nutrition_prompt(client_data: dict, food_catalog: str) -> str:
 ## 🥗 قائمة الأطعمة المتاحة (لكل 100 جرام):
 {food_catalog}
 
-أنشئ النظام الغذائي بصيغة JSON تتبع الـ Schema. كل وجبة لازم يكون فيها 3-4 alternatives.
-تأكد إن القيم في الـ JSON مطابقة للحسابات أعلاه.
+أنشئ النظام الغذائي بصيغة JSON حصراً، ويجب أن يكون متطابق تماماً مع هذا الهيكل:
+```json
+{
+  "client_name": "string",
+  "client_notes": "string",
+  "admin_notes": "string",
+  "macros": {
+    "total_calories": 0,
+    "total_protein": 0,
+    "total_carbs": 0,
+    "total_fats": 0,
+    "bmr": 0,
+    "tdee": 0
+  },
+  "meals": [
+    {
+      "name": "string",
+      "alternatives": [
+        {
+          "items": [
+            {
+              "food_name": "string",
+              "quantity_grams": 0,
+              "calories": 0,
+              "protein": 0,
+              "carbs": 0,
+              "fats": 0
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+تأكد إن القيم في الـ JSON مطابقة للحسابات أعلاه. لا ترجع أي نصوص أخرى غير الـ JSON.
 """

@@ -59,7 +59,6 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
                     contents=prompt,
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
-                        response_schema=NutritionPlanOutput,
                         temperature=0.7
                     )
                 )
@@ -75,7 +74,17 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
             raise ValueError(f"فشل توليد النظام الغذائي بسبب إصدار الموديل. آخر خطأ: {last_error}")
         
         print(f"[AI] Gemini response received, length: {len(response.text)}")
-        result = json.loads(response.text)
+        
+        # Clean up any potential markdown formatting if returned
+        raw_text = response.text.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        if raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+            
+        result = json.loads(raw_text.strip())
         return result
         
     except Exception as e:
