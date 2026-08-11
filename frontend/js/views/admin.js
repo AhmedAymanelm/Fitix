@@ -2579,17 +2579,17 @@ window.printClientReport = async function(clientId) {
                         z-index: -1;
                     }
                     .abs { position: absolute; color: #000; font-weight: 700; z-index: 1; }
-                    .name { top: 9.5%; right: 28%; font-size: 20px; }
-                    .date { top: 12.5%; right: 18%; font-size: 16px; }
-                    .next-visit { top: 12.5%; right: 55%; font-size: 16px; }
+                    .name { top: 3.5%; right: 18%; font-size: 22px; }
+                    .date { top: 8.5%; right: 12%; font-size: 16px; }
+                    .next-visit { top: 8.5%; right: 55%; font-size: 16px; }
                     
-                    .meal-box { width: 33%; height: 16%; font-size: 13px; overflow: hidden; line-height: 1.4; }
-                    .meal-1 { top: 32%; right: 9%; }
-                    .meal-2 { top: 32%; left: 9%; }
-                    .meal-3 { top: 62%; right: 9%; }
-                    .meal-4 { top: 62%; left: 9%; }
+                    .meal-box { width: 32%; height: 16%; font-size: 13px; overflow: hidden; line-height: 1.6; }
+                    .meal-1 { top: 31%; right: 11%; }
+                    .meal-2 { top: 31%; left: 9%; }
+                    .meal-3 { top: 60%; right: 11%; }
+                    .meal-4 { top: 60%; left: 9%; }
                     
-                    .notes { bottom: 10%; right: 20%; width: 50%; height: 9%; font-size: 14px; overflow: hidden; line-height: 1.8; padding-top:5px; }
+                    .notes { top: 83%; right: 40%; width: 55%; height: 12%; font-size: 14px; overflow: hidden; line-height: 1.8; padding-top:5px; }
                     
                     @media print {
                         .no-print { display: none !important; }
