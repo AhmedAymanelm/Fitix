@@ -1541,12 +1541,14 @@ window.printUserNutrition = async function() {
             width: 210mm;
             height: 297mm;
             position: relative;
-            background-image: url('${templateUrl}');
-            background-size: 100% 100%;
-            background-repeat: no-repeat;
-            background-position: center;
+            overflow: hidden;
           }
-          .abs { position: absolute; color: #000; font-weight: 700; }
+          .bg-img {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+          }
+          .abs { position: absolute; color: #000; font-weight: 700; z-index: 1; }
           .name { top: 9.5%; right: 28%; font-size: 20px; }
           .date { top: 12.5%; right: 18%; font-size: 16px; }
           .next-visit { top: 12.5%; right: 55%; font-size: 16px; }
@@ -1565,6 +1567,7 @@ window.printUserNutrition = async function() {
           <button onclick="window.print()" style="margin-top:10px;padding:10px 30px;font-size:16px;background:#28a745;color:#fff;border:none;border-radius:8px;cursor:pointer;">🖨️ طباعة / تحميل PDF</button>
         </div>
         <div class="page">
+          <img src="${templateUrl}" class="bg-img" alt="Background">
           <div class="abs name">${me.full_name || me.name || 'العميل'}</div>
           <div class="abs date">${today}</div>
           <div class="abs next-visit">بعد أسبوعين</div>
