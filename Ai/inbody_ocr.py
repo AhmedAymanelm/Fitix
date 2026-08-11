@@ -35,7 +35,7 @@ def parse_inbody_image(image_bytes: bytes) -> dict:
         prompt = get_inbody_prompt()
         
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.0-flash",
             contents=[img, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
