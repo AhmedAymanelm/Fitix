@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 class UserLogin(BaseModel):
     username: str = Field(..., min_length=2, max_length=50, examples=["omar.fit"])
-    password: str = Field(..., min_length=4, max_length=128, examples=["Fx1234!"])
+    password: str = Field(..., max_length=128, examples=["Fx1234!"])
 
 
 class UserCreate(BaseModel):

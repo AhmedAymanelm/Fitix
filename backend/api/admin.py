@@ -21,7 +21,7 @@ from models.nutrition import FoodItem, NutritionPlan, Meal
 from models.notification import Notification
 from api.deps import get_current_admin, hash_password
 from schemas.auth import UserResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"], dependencies=[Depends(get_current_admin)])
 
@@ -574,7 +574,7 @@ def get_client_active_plan(client_id: int, db: Session = Depends(get_db)):
 
 
 class PasswordUpdate(BaseModel):
-    new_password: str
+    new_password: str = Field(..., min_length=4)
 
 @router.post("/clients/{client_id}/toggle-active")
 def toggle_client_active(client_id: int, db: Session = Depends(get_db)):
