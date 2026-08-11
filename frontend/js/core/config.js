@@ -45,7 +45,7 @@ const userNav = [
 let mode = 'admin';
 let currentView = 'a-dash';
 
-function setMode(m){
+function setMode(m, forceView){
   mode = m;
   
   let firstName = '';
@@ -65,7 +65,12 @@ function setMode(m){
   }
   
   renderSidebar();
-  goView(m==='admin' ? 'a-dash' : 'u-dash');
+
+  // Restore last visited page (after refresh) or go to dashboard
+  const defaultView = m === 'admin' ? 'a-dash' : 'u-dash';
+  const savedView = sessionStorage.getItem('lastView');
+  const viewToGo = forceView || (savedView && savedView.startsWith(m === 'admin' ? 'a-' : 'u-') ? savedView : defaultView);
+  goView(viewToGo);
 }
 
 function renderSidebar(){

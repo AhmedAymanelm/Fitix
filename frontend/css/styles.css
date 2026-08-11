@@ -595,6 +595,15 @@ body::before{
 .pulse-dot{width:9px; height:9px; border-radius:50%; background:var(--gold); animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:.3;} 50%{opacity:1;}}
 @keyframes scan{0%{transform:translateY(-10px);} 100%{transform:translateY(160px);}}
+/* Skeleton shimmer */
+@keyframes shimmer{0%{background-position:-200% 0;} 100%{background-position:200% 0;}}
+.skeleton-box{
+  background:linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.5s ease-in-out infinite;
+  border-radius:10px;
+}
+
 .plan-template{
   border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; display:none;
 }

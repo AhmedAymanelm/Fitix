@@ -123,6 +123,8 @@ function toggleSidebar() {
 
 async function goView(id){
   currentView = id;
+  // Save current view so it can be restored after refresh
+  sessionStorage.setItem('lastView', id);
 
   // تحديث الـ active في الـ sidebar والـ mobile nav
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el =>
@@ -140,8 +142,16 @@ async function goView(id){
     return;
   }
 
-  
-  content.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-dim)"><span class="pulse-dot"></span> جاري التحميل...</div>';
+  // Skeleton loader (faster perceived performance)
+  content.innerHTML = `
+    <div style="padding:20px">
+      <div class="skeleton-box" style="height:48px;margin-bottom:16px;width:55%"></div>
+      <div class="skeleton-box" style="height:130px;margin-bottom:12px"></div>
+      <div class="skeleton-box" style="height:90px;margin-bottom:12px;width:90%"></div>
+      <div class="skeleton-box" style="height:90px;margin-bottom:12px;width:80%"></div>
+      <div class="skeleton-box" style="height:90px;width:70%"></div>
+    </div>`;
+
   
   try {
     const html = await views[id]();
@@ -156,3 +166,4 @@ async function goView(id){
   closeSidebar();
   requestAnimationFrame(()=>{ if(id==='u-dash') bindTimerless(); if(window.initFns && initFns[id]) initFns[id](); });
 }
+
