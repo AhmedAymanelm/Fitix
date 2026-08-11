@@ -131,6 +131,23 @@ function renderSidebar(){
 
   // رسم الـ bottom nav للموبايل
   renderMobileNav(nav);
+
+  // Re-apply chat badge after re-render (badges survive via nav config object)
+  if (typeof updateChatBadge === 'function') {
+    // Only update DOM (nav config already has the badge value)
+    ['a-chat', 'u-chat'].forEach(navId => {
+      const navItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
+      if (!navItem) return;
+      const n = [...adminNav, ...userNav].find(x => x.id === navId);
+      if (n && n.badge) {
+        const old = navItem.querySelector('.nav-badge');
+        if (old) old.remove();
+        navItem.insertAdjacentHTML('beforeend',
+          `<span class="nav-badge" style="background:#cda434;color:#000;font-weight:800;">${n.badge}</span>`
+        );
+      }
+    });
+  }
 }
 
 // ── Chat Unread Badge ──
@@ -141,43 +158,46 @@ async function updateChatBadge() {
     const convos = await apiFetch('/chat/conversations');
     const totalUnread = convos.reduce((sum, c) => sum + (c.unread || 0), 0);
 
-    // Update sidebar badge
-    const chatNavItem = document.querySelector('.nav-item[data-nav="a-chat"]');
-    if (chatNavItem) {
-      const existingBadge = chatNavItem.querySelector('.nav-badge');
-      if (existingBadge) existingBadge.remove();
-      if (totalUnread > 0) {
-        chatNavItem.insertAdjacentHTML('beforeend', `<span class="nav-badge" style="background:#cda434;color:#000;">${totalUnread}</span>`);
-      }
-    }
+    // ── Update nav config objects so badge survives renderSidebar() calls ──
+    const chatAdminNav = adminNav.find(n => n.id === 'a-chat');
+    const chatUserNav  = userNav.find(n => n.id === 'u-chat');
+    if (chatAdminNav) chatAdminNav.badge = totalUnread > 0 ? totalUnread : null;
+    if (chatUserNav)  chatUserNav.badge  = totalUnread > 0 ? totalUnread : null;
 
-    // Update mobile nav badge if present
-    const mobileChatItem = document.querySelector('.mobile-nav-item[data-nav="a-chat"]');
-    if (mobileChatItem) {
-      const existingMBadge = mobileChatItem.querySelector('.mobile-badge');
-      if (existingMBadge) existingMBadge.remove();
-      if (totalUnread > 0) {
-        mobileChatItem.style.position = 'relative';
-        mobileChatItem.insertAdjacentHTML('beforeend', `<span class="mobile-badge" style="position:absolute;top:4px;right:4px;background:#cda434;color:#000;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px;">${totalUnread}</span>`);
+    // ── Directly update DOM badge in case sidebar is already rendered ──
+    ['a-chat', 'u-chat'].forEach(navId => {
+      // Sidebar nav item
+      const navItem = document.querySelector(`.nav-item[data-nav="${navId}"]`);
+      if (navItem) {
+        const old = navItem.querySelector('.nav-badge');
+        if (old) old.remove();
+        if (totalUnread > 0) {
+          navItem.insertAdjacentHTML('beforeend',
+            `<span class="nav-badge" style="background:#cda434;color:#000;font-weight:800;">${totalUnread}</span>`
+          );
+        }
       }
-    }
 
-    // Also update user-side chat badge
-    const userChatNavItem = document.querySelector('.nav-item[data-nav="u-chat"]');
-    if (userChatNavItem) {
-      const existingBadge = userChatNavItem.querySelector('.nav-badge');
-      if (existingBadge) existingBadge.remove();
-      if (totalUnread > 0) {
-        userChatNavItem.insertAdjacentHTML('beforeend', `<span class="nav-badge" style="background:#cda434;color:#000;">${totalUnread}</span>`);
+      // Mobile nav item
+      const mobileItem = document.querySelector(`.mobile-nav-item[data-nav="${navId}"]`);
+      if (mobileItem) {
+        const oldM = mobileItem.querySelector('.mobile-badge');
+        if (oldM) oldM.remove();
+        if (totalUnread > 0) {
+          mobileItem.style.position = 'relative';
+          mobileItem.insertAdjacentHTML('beforeend',
+            `<span class="mobile-badge" style="position:absolute;top:4px;right:4px;background:#cda434;color:#000;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:999px;display:flex;align-items:center;justify-content:center;padding:0 4px;">${totalUnread}</span>`
+          );
+        }
       }
-    }
+    });
   } catch(e) {}
 }
 
 function startChatBadgePolling() {
   updateChatBadge();
   if (_chatBadgeInterval) clearInterval(_chatBadgeInterval);
-  _chatBadgeInterval = setInterval(updateChatBadge, 15000);
+  _chatBadgeInterval = setInterval(updateChatBadge, 10000); // every 10s
 }
 
 
