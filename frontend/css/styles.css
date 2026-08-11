@@ -99,11 +99,13 @@ body::before{
 }
 
 /* ---------- shell ---------- */
-.shell{display:flex; min-height:calc(100vh - 64px); position:relative; z-index:1;}
+.shell{display:flex; flex:1; min-height:calc(100vh - 64px); position:relative;}
 .sidebar{
   width:230px; flex-shrink:0; border-left:1px solid var(--border);
   padding:20px 12px; display:flex; flex-direction:column; gap:4px;
+  overflow-y: auto;
 }
+
 .side-title{font-size:11px; color:var(--text-dimmer); font-weight:700; padding:10px 12px 6px; letter-spacing:.5px;}
 .nav-item{
   display:flex; align-items:center; gap:10px;
@@ -492,7 +494,30 @@ body::before{
 .login-hint{margin-top:16px; font-size:11px; color:var(--text-dimmer); text-align:center; line-height:1.7;}
 .login-hint b{color:var(--text-dim);}
 .app-shell{display:none;}
-.app-shell.show{display:block;}
+.app-shell.show{display:flex; flex-direction:column;}
+
+/* Desktop: sidebar + content side by side */
+@media(min-width: 881px) {
+  .app-shell.show {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .topbar {
+    width: 100%;
+    flex: 0 0 100%;
+  }
+  #sidebar {
+    width: 230px;
+    flex-shrink: 0;
+    align-self: stretch;
+  }
+  .shell {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 
 /* =====================================================
    NOTIFICATION BELL & DROPDOWN

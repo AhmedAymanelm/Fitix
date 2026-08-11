@@ -97,20 +97,42 @@ function renderSidebar(){
     </div>`;
   }
 
-  document.getElementById('sidebar').innerHTML = `
+  const sidebarEl = document.getElementById('sidebar');
+  sidebarEl.innerHTML = `
     ${brandHtml}
     ${welcomeHtml}
     <div class="side-title">${groupLabel}</div>
     ${nav.map(n=>`
-      <div class="nav-item ${n.id===currentView?'active':''}" onclick="goView('${n.id}')" data-nav="${n.id}">
+      <div class="nav-item ${n.id===currentView?'active':''}" data-nav="${n.id}" style="touch-action:manipulation;cursor:pointer;">
         ${n.icon}<span>${n.label}</span>
         ${n.badge?`<span class="nav-badge">${n.badge}</span>`:''}
       </div>`).join('')}
   `;
 
+  // Add event listeners after rendering (more reliable than inline onclick on mobile)
+  sidebarEl.querySelectorAll('.nav-item[data-nav]').forEach(item => {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      const viewId = this.dataset.nav;
+      if (viewId && typeof goView === 'function') {
+        goView(viewId);
+      }
+    });
+    // Touch support
+    item.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      const viewId = this.dataset.nav;
+      if (viewId && typeof goView === 'function') {
+        goView(viewId);
+      }
+    }, { passive: false });
+  });
+
   // رسم الـ bottom nav للموبايل
   renderMobileNav(nav);
 }
+
 
 function renderMobileNav(nav) {
   const mobileNav = document.getElementById('mobileNav');
