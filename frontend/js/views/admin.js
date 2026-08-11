@@ -2541,12 +2541,21 @@ window.printClientReport = async function(clientId) {
             if (!m) return '';
             try {
                 const parsed = JSON.parse(m.items);
-                if (parsed.alternatives && parsed.alternatives.length > 0) {
-                    return parsed.alternatives[0].items.map(i => `<div style="margin-bottom:4px">• ${i.food_name || i.name} (${i.quantity_grams || i.amount || 0}g)</div>`).join('');
+                const alts = parsed.alternatives || [];
+                if (alts.length > 0) {
+                    return alts.slice(0, 4).map((alt, idx) => {
+                        let html = `<div style="margin-bottom:8px;">`;
+                        if (alts.length > 1) {
+                            html += `<div style="color:var(--olive); font-size:11px; font-weight:800; margin-bottom:2px;">— خيـار ${idx+1} —</div>`;
+                        }
+                        html += alt.items.map(i => `<div style="margin-bottom:2px;">• ${i.food_name || i.name} (${i.quantity_grams || i.amount || 0}g)</div>`).join('');
+                        html += `</div>`;
+                        return html;
+                    }).join('');
                 }
                 return '';
             } catch(e) {
-                return m.items.split('+').map(item => `<div style="margin-bottom:4px">• ${item.trim()}</div>`).join('');
+                return m.items.split('+').map(item => `<div style="margin-bottom:2px;">• ${item.trim()}</div>`).join('');
             }
         }
 
@@ -2554,72 +2563,251 @@ window.printClientReport = async function(clientId) {
         const m2 = activePlan.meals[1];
         const m3 = activePlan.meals[2];
         const m4 = activePlan.meals[3];
+        const clientNotes = activePlan.client_notes || activePlan.notes || activePlan.goal || '';
 
         const today = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
-        const templateUrl = window.location.origin + '/assets/images/template.jpg';
 
         const printWin = window.open('', '_blank');
         printWin.document.write(`
-            <html dir="rtl">
-            <head>
-                <title>طباعة النظام الغذائي - ${client.full_name}</title>
-                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
-                <style>
-                    @page { size: A4; margin: 0; }
-                    body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Cairo', sans-serif; }
-                    .page { 
-                        width: 210mm; 
-                        height: 297mm; 
-                        position: relative; 
-                        overflow: hidden;
-                    }
-                    .bg-img {
-                        position: absolute;
-                        top: 0; left: 0; width: 100%; height: 100%;
-                        z-index: -1;
-                    }
-                    .abs { position: absolute; color: #000; font-weight: 700; z-index: 1; }
-                    .name { top: 3.5%; right: 18%; font-size: 22px; }
-                    .date { top: 8.5%; right: 12%; font-size: 16px; }
-                    .next-visit { top: 8.5%; right: 55%; font-size: 16px; }
-                    
-                    .meal-box { width: 32%; height: 16%; font-size: 13px; overflow: hidden; line-height: 1.6; }
-                    .meal-1 { top: 31%; right: 11%; }
-                    .meal-2 { top: 31%; left: 9%; }
-                    .meal-3 { top: 60%; right: 11%; }
-                    .meal-4 { top: 60%; left: 9%; }
-                    
-                    .notes { top: 83%; right: 40%; width: 55%; height: 12%; font-size: 14px; overflow: hidden; line-height: 1.8; padding-top:5px; }
-                    
-                    @media print {
-                        .no-print { display: none !important; }
-                    }
-                </style>
-            </head>
-            <body>
-                <div class="no-print" style="padding:15px; background:#d4edda; color:#155724; text-align:center; font-size:16px;">
-                    ✅ جاهز للطباعة — اضغط Ctrl+P أو ⌘+P<br>
-                    <button onclick="window.print()" style="margin-top:10px; padding:10px 20px; font-size:16px; background:#28a745; color:#fff; border:none; border-radius:8px; cursor:pointer;">🖨️ طباعة / تحميل PDF</button>
-                </div>
-                
-                <div class="page">
-                    <img src="${templateUrl}" class="bg-img" alt="Background">
-                    <div class="abs name">${client.full_name}</div>
-                    <div class="abs date">${today}</div>
-                    <div class="abs next-visit">بعد أسبوعين</div>
-                    
-                    <div class="abs meal-box meal-1">${formatPrintMeal(m1)}</div>
-                    <div class="abs meal-box meal-2">${formatPrintMeal(m2)}</div>
-                    <div class="abs meal-box meal-3">${formatPrintMeal(m3)}</div>
-                    <div class="abs meal-box meal-4">${formatPrintMeal(m4)}</div>
-                    
-                    <div class="abs notes">${activePlan.admin_notes || activePlan.goal || ''}</div>
-                </div>
-                <script>
-                    setTimeout(() => { window.print(); }, 1000);
-                </script>
-            </body>
-            </html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>FITIX - خطة الوجبات</title>
+<link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Poppins:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream: #FBF1DE;
+    --cream-soft: #FDF6E9;
+    --olive: #7A8A3C;
+    --forest: #2E4A1F;
+    --forest-deep: #1F3815;
+    --peach: #FBE4C4;
+    --ink: #2B2B22;
+    --line: #33331f;
+  }
+  *{ box-sizing: border-box; }
+  html,body{
+    margin:0; padding:0;
+    background:#e9e2d0;
+    font-family:'Almarai', sans-serif;
+    color:var(--ink);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .page{
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0 auto;
+    background: var(--cream);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* header */
+  .header{
+    position:relative;
+    background: linear-gradient(135deg, #dcdf9e 0%, #c9d17a 45%, #b9c661 100%);
+    padding: 34px 40px 22px 40px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    min-height: 180px;
+    z-index:2;
+  }
+  .header-text{
+    position:relative;
+    z-index:2;
+    width:100%;
+    padding-top: 6px;
+  }
+  .name-field{
+    font-size: 34px;
+    font-weight: 800;
+    color: var(--forest-deep);
+    margin: 0 0 22px 0;
+  }
+  .meta-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--forest-deep);
+    gap: 20px;
+  }
+  .meta-row .field{
+    white-space:nowrap;
+  }
+  .dots-row{
+    display:flex;
+    gap: 14px;
+    padding: 22px 40px 0 40px;
+    position:relative;
+    z-index:2;
+  }
+  .dots-row span{
+    width:12px; height:12px; border-radius:50%;
+    background: var(--olive);
+    display:inline-block;
+  }
+
+  /* meals grid */
+  .meals{
+    position:relative;
+    z-index:2;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px 34px;
+    padding: 34px 44px 10px 44px;
+  }
+  .meal-pill{
+    display:inline-block;
+    padding: 8px 20px;
+    border-radius: 24px;
+    color:#fff;
+    font-weight:800;
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+  .pill-dark{ background: var(--forest-deep); }
+  .pill-olive{ background: var(--olive); }
+
+  .meal-sub{
+    font-weight:700;
+    font-size: 15px;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .meal-box{
+    border: 2.5px dashed var(--line);
+    border-radius: 20px;
+    min-height: 180px;
+    background: rgba(255,255,255,0.35);
+    padding: 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* notes + footer photo */
+  .footer{
+    position:relative;
+    z-index:2;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    padding: 18px 44px 40px 44px;
+    gap: 30px;
+  }
+  .notes{
+    flex: 1;
+    background: var(--peach);
+    border-radius: 16px;
+    padding: 18px 26px 22px 26px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.8;
+    min-height: 140px;
+  }
+  .notes h3{
+    text-align:center;
+    color: var(--forest);
+    font-size: 19px;
+    margin: 0 0 14px 0;
+    font-weight:800;
+  }
+  .footer-brand{
+    width: 190px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap: 12px;
+  }
+  .footer-brand .wordmark{
+    font-family: 'Poppins', sans-serif;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    background: linear-gradient(135deg, var(--forest-deep) 0%, var(--olive) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .footer-dots{
+    display:flex; gap:10px;
+  }
+  .footer-dots span{
+    width:10px; height:10px; border-radius:50%;
+    background: var(--olive);
+    display:inline-block;
+  }
+
+  @media print { 
+    .no-print { display: none !important; } 
+    body, html { background: #fff; }
+    .page { box-shadow: none; margin: 0; width: 100%; min-height: 100%; }
+    @page { size: A4; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="no-print" style="padding:15px; background:#d4edda; color:#155724; text-align:center; font-size:16px; font-family:'Almarai', sans-serif;">
+    ✅ جاهز للطباعة — اضغط Ctrl+P أو ⌘+P<br>
+    <button onclick="window.print()" style="margin-top:10px; padding:10px 20px; font-size:16px; background:#28a745; color:#fff; border:none; border-radius:8px; cursor:pointer;">🖨️ طباعة / تحميل PDF</button>
+</div>
+<div class="page">
+  <div class="header">
+    <div class="header-text">
+      <div class="name-field">الاسم / ${client.full_name || 'العميل'}</div>
+      <div class="meta-row">
+        <span class="field">التاريخ : ${today}</span>
+        <span class="field">موعد الميزان القادم : بعد أسبوعين</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dots-row">
+    <span></span><span></span><span></span><span></span>
+  </div>
+
+  <div class="meals">
+    <div>
+      <span class="meal-pill pill-dark">الوجبه الاولى</span>
+      <div class="meal-sub">${m1?.name || 'الفطور'}</div>
+      <div class="meal-box">${formatPrintMeal(m1)}</div>
+    </div>
+    <div>
+      <span class="meal-pill pill-olive">الوجبة الثانية</span>
+      <div class="meal-sub">${m2?.name || 'اسناك قبل التمرين'}</div>
+      <div class="meal-box">${formatPrintMeal(m2)}</div>
+    </div>
+    <div>
+      <span class="meal-pill pill-olive">الوجبة الثالثة</span>
+      <div class="meal-sub">${m3?.name || 'الغداء / وجبة بعد التمرين'}</div>
+      <div class="meal-box">${formatPrintMeal(m3)}</div>
+    </div>
+    <div>
+      <span class="meal-pill pill-dark">الوجبة الرابعة</span>
+      <div class="meal-sub">${m4?.name || 'العشاء'}</div>
+      <div class="meal-box">${formatPrintMeal(m4)}</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="notes">
+      <h3>ملاحظات</h3>
+      ${clientNotes || 'لا توجد ملاحظات إضافية.'}
+    </div>
+    <div class="footer-brand">
+      <div class="wordmark">FITIX</div>
+      <div class="footer-dots"><span></span><span></span><span></span><span></span></div>
+    </div>
+  </div>
+</div>
+<script>setTimeout(() => { window.print(); }, 800);</script>
+</body>
+</html>
         `);
         printWin.document.close();
         
