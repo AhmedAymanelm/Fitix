@@ -372,7 +372,7 @@ views['a-chat'] = async () => {
     <div class="chat-main">
       <div class="chat-head">
         <button class="chat-back-btn" onclick="activeChatUserId=null; goView('a-chat')" title="رجوع">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="20" height="20"><path d="M15 19l-7-7 7-7"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
         </button>
         <div class="chat-head-avatar">${initial}</div>
         <div class="chat-head-info">
@@ -382,15 +382,22 @@ views['a-chat'] = async () => {
       </div>
       <div class="chat-body" id="chatBody">
         ${msgs.length === 0 ? `<div class="chat-no-msgs">لا توجد رسائل بعد — ابدأ المحادثة! 👋</div>` : ''}
-        ${msgs.map(m => `
+        ${msgs.map(m => {
+          const timeStr = '12:00'; // Placeholder if no time is provided by API
+          return `
           <div class="bubble-wrap ${m.is_me ? 'out-wrap' : 'in-wrap'}">
-            <div class="bubble ${m.is_me ? 'out' : 'in'}">${m.content}</div>
-            <div class="bubble-time">${m.is_me ? 'أنت' : name.split(' ')[0]}</div>
+            <div class="bubble ${m.is_me ? 'out' : 'in'}">
+              ${m.content}
+              <div class="bubble-meta">
+                <span class="bubble-time">${timeStr}</span>
+                ${m.is_me ? '<span class="bubble-check">✓✓</span>' : ''}
+              </div>
+            </div>
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
       <div class="chat-input-area">
-        <input id="chatInput" class="chat-text-input" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key==='Enter') sendChat()">
+        <input id="chatInput" class="chat-text-input" placeholder="اكتب رسالتك..." onkeypress="if(event.key==='Enter') sendChat()">
         <button class="chat-send-btn" onclick="sendChat()">
           <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
         </button>
@@ -407,20 +414,28 @@ views['a-chat'] = async () => {
       ${convos.length === 0 ? `
         <div class="chat-list-empty">
           <div style="font-size:40px;margin-bottom:12px">💬</div>
-          <div style="font-weight:700;margin-bottom:4px">لا توجد محادثات</div>
-          <div style="font-size:12px;color:var(--text-dimmer)">ستظهر هنا بمجرد تواصل العملاء</div>
+          <div style="font-weight:500;margin-bottom:4px;color:#e9edef">لا توجد محادثات</div>
+          <div style="font-size:12px;">ستظهر هنا بمجرد تواصل العملاء</div>
         </div>
       ` : ''}
-      ${convos.map(c => `
+      ${convos.map(c => {
+        const timeStr = '12:00'; // Placeholder
+        return `
         <div class="chat-item ${c.user_id === activeChatUserId ? 'active' : ''}" 
              onclick="activeChatUserId=${c.user_id}; goView('a-chat')">
           <div class="chat-item-avatar">${c.name[0].toUpperCase()}</div>
           <div class="chat-item-info">
-            <div class="chat-item-name">${c.name}</div>
-            <div class="chat-item-msg">${c.last_message || 'لا توجد رسائل'}</div>
+            <div class="chat-item-header-row">
+              <div class="chat-item-name">${c.name}</div>
+              <div class="chat-item-time">${timeStr}</div>
+            </div>
+            <div class="chat-item-msg-row">
+              <div class="chat-item-msg">${c.last_message || 'لا توجد رسائل'}</div>
+              ${c.unread ? `<div class="chat-unread-badge">${c.unread}</div>` : ''}
+            </div>
           </div>
-          ${c.unread ? `<span class="chat-unread-badge">${c.unread}</span>` : ''}
-        </div>`).join('')}
+        </div>`
+      }).join('')}
     </div>
     ${chatMainHtml}
   </div>
@@ -439,10 +454,16 @@ async function sendChat(){
   const noMsgs = body.querySelector('.chat-no-msgs');
   if (noMsgs) noMsgs.remove();
   
+  const timeStr = 'الآن';
   body.insertAdjacentHTML('beforeend', `
     <div class="bubble-wrap out-wrap">
-      <div class="bubble out">${txt}</div>
-      <div class="bubble-time">أنت</div>
+      <div class="bubble out">
+        ${txt}
+        <div class="bubble-meta">
+          <span class="bubble-time">${timeStr}</span>
+          <span class="bubble-check">✓</span>
+        </div>
+      </div>
     </div>
   `);
   inp.value='';
