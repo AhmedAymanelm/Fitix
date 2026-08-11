@@ -754,17 +754,35 @@ views['a-client-detail'] = async () => {
           <span class="tag" style="background:var(--lime); color:#000">نشط الآن</span>
         </div>
         <div style="display:flex; flex-direction:column; gap:10px">
-          ${activePlan.meals.map(m => `
+          ${activePlan.meals.map(m => {
+            let altsHtml = '';
+            try {
+              const parsed = JSON.parse(m.items);
+              if (parsed.alternatives && parsed.alternatives.length > 0) {
+                 altsHtml = parsed.alternatives.map((alt, idx) => `
+                   <div style="margin-bottom:8px">
+                     <div style="color:var(--text-dim);font-size:11px;margin-bottom:3px">الخيار ${idx+1}:</div>
+                     ${(alt.items||[]).map(i => `<div style="padding-left:10px; position:relative"><span style="position:absolute; right:0; top:0; color:var(--text-dim)">•</span> ${i.food_name || i.name} (${i.quantity_grams || i.amount || 0}g)</div>`).join('')}
+                   </div>
+                 `).join('');
+              } else {
+                 altsHtml = "لا يوجد بيانات للوجبة";
+              }
+            } catch(e) {
+              altsHtml = m.items.split('+').map(item => `<div style="padding-left:10px; position:relative"><span style="position:absolute; right:0; top:0; color:var(--text-dim)">•</span> ${item.trim()}</div>`).join('');
+            }
+            return `
             <div style="padding:15px; background:var(--surface-2); border-radius:8px; border-left:3px solid var(--gold)">
               <div style="display:flex; justify-content:space-between; margin-bottom:8px">
                 <b>${m.name}</b>
                 <span style="font-size:12px; color:var(--gold)">${m.calories} سعرة</span>
               </div>
               <div style="font-size:13px; color:var(--text); line-height:1.6">
-                ${m.items.split('+').map(item => `<div style="padding-left:10px; position:relative"><span style="position:absolute; right:0; top:0; color:var(--text-dim)">•</span> ${item.trim()}</div>`).join('')}
+                ${altsHtml}
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </div>
       </div>
     `;
@@ -2456,3 +2474,115 @@ async function submitUploadExercise(e) {
         btn.innerText = 'رفع التمرين';
     }
 }
+
+// ── طباعة تقرير العميل ──
+window.printClientReport = async function(clientId) {
+    const btn = event.currentTarget;
+    const oldText = btn.innerHTML;
+    btn.innerHTML = 'جاري التحضير...';
+    
+    try {
+        const clients = await apiFetch('/admin/clients');
+        const client = clients.find(x => x.id == clientId);
+        if(!client) throw new Error('Client not found');
+        
+        const plans = await apiFetch(`/admin/plans/${clientId}`);
+        const activePlan = plans.find(p => p.status === 'active');
+        
+        if(!activePlan) {
+            alert('لا يوجد نظام غذائي نشط لطباعته.');
+            btn.innerHTML = oldText;
+            return;
+        }
+
+        function formatPrintMeal(m) {
+            if (!m) return '';
+            try {
+                const parsed = JSON.parse(m.items);
+                if (parsed.alternatives && parsed.alternatives.length > 0) {
+                    return parsed.alternatives[0].items.map(i => `<div style="margin-bottom:4px">• ${i.food_name || i.name} (${i.quantity_grams || i.amount || 0}g)</div>`).join('');
+                }
+                return '';
+            } catch(e) {
+                return m.items.split('+').map(item => `<div style="margin-bottom:4px">• ${item.trim()}</div>`).join('');
+            }
+        }
+
+        const m1 = activePlan.meals[0];
+        const m2 = activePlan.meals[1];
+        const m3 = activePlan.meals[2];
+        const m4 = activePlan.meals[3];
+
+        const today = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        const printWin = window.open('', '_blank');
+        printWin.document.write(`
+            <html dir="rtl">
+            <head>
+                <title>طباعة النظام الغذائي - ${client.full_name}</title>
+                <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
+                <style>
+                    @page { size: A4; margin: 0; }
+                    body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Cairo', sans-serif; }
+                    .page { 
+                        width: 210mm; 
+                        height: 297mm; 
+                        position: relative; 
+                        background-image: url('assets/images/template.jpg');
+                        background-size: 100% 100%; 
+                        background-repeat: no-repeat;
+                        background-position: center;
+                    }
+                    .abs { position: absolute; color: #000; font-weight: 700; }
+                    .name { top: 9.5%; right: 28%; font-size: 20px; }
+                    .date { top: 12.5%; right: 18%; font-size: 16px; }
+                    .next-visit { top: 12.5%; right: 55%; font-size: 16px; }
+                    
+                    .meal-box { width: 33%; height: 16%; font-size: 13px; overflow: hidden; line-height: 1.4; }
+                    .meal-1 { top: 32%; right: 9%; }
+                    .meal-2 { top: 32%; left: 9%; }
+                    .meal-3 { top: 62%; right: 9%; }
+                    .meal-4 { top: 62%; left: 9%; }
+                    
+                    .notes { bottom: 10%; right: 20%; width: 50%; height: 9%; font-size: 14px; overflow: hidden; line-height: 1.8; padding-top:5px; }
+                    
+                    @media print {
+                        .no-print { display: none !important; }
+                    }
+                </style>
+            </head>
+            <body>
+                <!-- رسالة تحذيرية بتظهر بس على الشاشة ومش في الطباعة -->
+                <div class="no-print" style="padding:20px; background:#fff3cd; color:#856404; text-align:center; font-size:18px;">
+                    يرجى التأكد من رفع صورة القالب باسم <b>template.jpg</b> داخل مجلد <b>frontend/assets/images/</b> لكي تظهر الخلفية بشكل صحيح.<br>
+                    <button onclick="window.print()" style="margin-top:10px; padding:10px 20px; font-size:16px; cursor:pointer;">اضغط هنا للطباعة الآن</button>
+                </div>
+                
+                <div class="page">
+                    <div class="abs name">${client.full_name}</div>
+                    <div class="abs date">${today}</div>
+                    <div class="abs next-visit">بعد أسبوعين</div>
+                    
+                    <div class="abs meal-box meal-1">${formatPrintMeal(m1)}</div>
+                    <div class="abs meal-box meal-2">${formatPrintMeal(m2)}</div>
+                    <div class="abs meal-box meal-3">${formatPrintMeal(m3)}</div>
+                    <div class="abs meal-box meal-4">${formatPrintMeal(m4)}</div>
+                    
+                    <div class="abs notes">${activePlan.admin_notes || activePlan.goal || ''}</div>
+                </div>
+                <script>
+                    setTimeout(() => { window.print(); }, 1000);
+                </script>
+            </body>
+            </html>
+        `);
+        printWin.document.close();
+        
+    } catch(e) {
+        console.error(e);
+        alert('حدث خطأ أثناء تجهيز الطباعة.');
+    } finally {
+        btn.innerHTML = oldText;
+    }
+}
+
