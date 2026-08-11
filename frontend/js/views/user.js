@@ -1232,16 +1232,19 @@ views['u-settings'] = ()=>`
 
 /* ---- User Chat (With Admin) ---- */
 views['u-chat'] = async () => {
-  const msgs = await apiFetch('/chat/1'); // Fetch chat with admin (ID: 1)
+  // Stop any existing poll
+  if (window._uChatPollTimer) { clearInterval(window._uChatPollTimer); window._uChatPollTimer = null; }
   
-  return `
+  const msgs = await apiFetch('/chat/1'); // Fetch chat with admin (ID: 1)
+  const lastId = msgs.length > 0 ? msgs[msgs.length - 1].id : 0;
+  
+  const html = `
   <div class="page-head"><h1>المحادثة مع الكابتن</h1><p>لو عندك استفسار في التمرين أو الأكل، الكابتن هنا!</p></div>
-  <div class="ai-chat-wrap" style="height:calc(100vh - 200px); min-height:400px">
+  <div class="ai-chat-wrap" style="height:calc(100dvh - 160px); min-height:400px">
     <div class="ai-chat-head" style="background:linear-gradient(135deg,var(--surface-2),var(--surface-3))">
       <div class="ai-icon" style="background:var(--lime);color:#000;font-weight:900">C</div>
       <div>
         <div style="font-weight:700">كابتن الجيم</div>
-        <div style="font-size:11px;color:var(--text-dim)">متواجد</div>
       </div>
     </div>
     <div class="ai-chat-body chat-messages-area" id="uChatBody" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px">
@@ -1269,8 +1272,46 @@ views['u-chat'] = async () => {
     </div>
   </div>
   `;
-  // Scroll to bottom
-  setTimeout(() => { const b = document.getElementById('uChatBody'); if(b) b.scrollTop = b.scrollHeight; }, 150);
+
+  // Start polling after render
+  setTimeout(() => {
+    const body = document.getElementById('uChatBody');
+    if (body) {
+      body.scrollTop = body.scrollHeight;
+      let lastMsgId = lastId;
+      window._uChatPollTimer = setInterval(async () => {
+        const b = document.getElementById('uChatBody');
+        if (!b) { clearInterval(window._uChatPollTimer); window._uChatPollTimer = null; return; }
+        try {
+          const newMsgs = await apiFetch('/chat/1');
+          if (!newMsgs || newMsgs.length === 0) return;
+          const latestId = newMsgs[newMsgs.length - 1].id;
+          if (latestId <= lastMsgId) return;
+          const fresh = newMsgs.filter(m => m.id > lastMsgId);
+          lastMsgId = latestId;
+          fresh.forEach(m => {
+            const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}) : '';
+            if(m.is_me) {
+              b.insertAdjacentHTML('beforeend', `
+                <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+                  <div class="ai-bubble user" style="background:var(--surface-3);color:var(--text);border-radius:14px 14px 4px 14px;max-width:75%">${m.content}</div>
+                  ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-right:4px">${time}</div>` : ''}
+                </div>`);
+            } else {
+              b.insertAdjacentHTML('beforeend', `
+                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                  <div class="ai-bubble assistant" style="background:var(--lime);color:#0d0e10;font-weight:600;border-radius:14px 14px 14px 4px;max-width:75%">${m.content}</div>
+                  ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-left:4px">${time}</div>` : ''}
+                </div>`);
+            }
+          });
+          b.scrollTop = b.scrollHeight;
+        } catch(e) { /* ignore */ }
+      }, 3000);
+    }
+  }, 100);
+
+  return html;
 }
 
 async function sendUChat(){
@@ -1279,7 +1320,7 @@ async function sendUChat(){
   if(!txt) return;
   
   const body = document.getElementById('uChatBody');
-  body.insertAdjacentHTML('beforeend', `<div class="ai-bubble user" style="background:var(--surface-3);color:var(--text)">${txt}</div>`);
+  body.insertAdjacentHTML('beforeend', `<div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><div class="ai-bubble user" style="background:var(--surface-3);color:var(--text);border-radius:14px 14px 4px 14px;max-width:75%">${txt}</div></div>`);
   inp.value = '';
   body.scrollTop = body.scrollHeight;
   

@@ -346,7 +346,17 @@ function initDashboardCharts() {
 }
 
 let activeChatUserId = null;
+let _chatPollTimer = null;  // Live polling timer
+let _chatLastMsgId = 0;    // Track last seen message ID
 
+// Stop polling when user navigates away
+const _origGoView = window.goView;
+if (typeof goView === 'function') {
+  const _origGoView = goView;
+  window._stopChatPoll = function() {
+    if (_chatPollTimer) { clearInterval(_chatPollTimer); _chatPollTimer = null; }
+  };
+}
 views['a-chat'] = async () => {
   const convos = await apiFetch('/chat/conversations');
   
@@ -405,6 +415,17 @@ views['a-chat'] = async () => {
   }
   
   const isMobileView = activeChatUserId !== null;
+  // Get the last message id for polling baseline
+  const lastMsgId = activeChatUserId ? (await apiFetch(`/chat/${activeChatUserId}`).then(m => m.length > 0 ? m[m.length-1].id : 0).catch(() => 0)) : 0;
+
+  // Start polling after the view renders
+  setTimeout(() => {
+    const body = document.getElementById('chatBody');
+    if (body) {
+      body.scrollTop = body.scrollHeight;
+      if (activeChatUserId) startChatPoll(lastMsgId);
+    }
+  }, 100);
 
   return `
   <div class="page-head"><h1>المحادثات</h1><p>كلم عملاءك مباشرة من هنا</p></div>
@@ -443,6 +464,40 @@ views['a-chat'] = async () => {
   `;
 }
 
+// ── Live polling for new messages (admin side) ──
+function startChatPoll(initialLastId) {
+  if (_chatPollTimer) clearInterval(_chatPollTimer);
+  _chatLastMsgId = initialLastId || 0;
+  _chatPollTimer = setInterval(async () => {
+    if (!activeChatUserId) { clearInterval(_chatPollTimer); _chatPollTimer = null; return; }
+    const body = document.getElementById('chatBody');
+    if (!body) { clearInterval(_chatPollTimer); _chatPollTimer = null; return; }
+    try {
+      const msgs = await apiFetch(`/chat/${activeChatUserId}`);
+      if (!msgs || msgs.length === 0) return;
+      const latestId = msgs[msgs.length - 1].id;
+      if (latestId <= _chatLastMsgId) return;
+      const newMsgs = msgs.filter(m => m.id > _chatLastMsgId);
+      _chatLastMsgId = latestId;
+      newMsgs.forEach(m => {
+        const noMsgs = body.querySelector('.chat-no-msgs');
+        if (noMsgs) noMsgs.remove();
+        const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}) : '';
+        body.insertAdjacentHTML('beforeend', `
+          <div class="bubble-wrap ${m.is_me ? 'out-wrap' : 'in-wrap'}">
+            <div class="bubble ${m.is_me ? 'out' : 'in'}">
+              ${m.content}
+              <div class="bubble-meta">
+                <span class="bubble-time">${timeStr}</span>
+                ${m.is_me ? '<span class="bubble-check">✓✓</span>' : ''}
+              </div>
+            </div>
+          </div>`);
+      });
+      body.scrollTop = body.scrollHeight;
+    } catch(e) { /* ignore */ }
+  }, 3000);
+}
 
 async function sendChat(){
   if(!activeChatUserId) return;
