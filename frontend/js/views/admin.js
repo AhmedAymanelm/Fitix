@@ -1472,17 +1472,59 @@ async function reviewPlan(planId) {
     const plan = await apiFetch(`/admin/plans/${planId}`);
     currentPendingPlanId = plan.id;
     
-    let mealsHtml = plan.meals.map(m => `
-      <div class="card" style="margin-bottom:15px; border-left:4px solid var(--lime)">
-        <div style="display:flex; justify-content:space-between; margin-bottom:10px">
-          <h4 style="color:var(--lime)">${m.name}</h4>
-          <span class="tag" style="background:rgba(204,255,0,0.1); color:var(--lime)">${m.calories} سعرة</span>
-        </div>
-        <div style="color:var(--text); line-height:1.6; font-size:14px">
-          ${m.items.split('+').map(item => `<div style="padding-left:15px; position:relative"><span style="position:absolute; right:0; top:0; color:var(--gold)">•</span> ${item.trim()}</div>`).join('')}
-        </div>
-      </div>
-    `).join('');
+    let mealsHtml = plan.meals.map(m => {
+      let mealBody = '';
+      try {
+        const parsed = JSON.parse(m.items);
+        const mealTime = parsed.meal_time || '';
+        const mealRole = parsed.meal_role || '';
+        const alts = parsed.alternatives || [];
+        
+        if (alts.length > 0) {
+          mealBody = alts.map((alt, idx) => `
+            <div style="margin-bottom:12px; background:var(--surface-3); border-radius:8px; padding:12px;">
+              <div style="font-size:12px; font-weight:800; color:var(--gold); margin-bottom:8px;">🔄 ${alt.alternative_label || 'الخيار ' + (idx+1)}</div>
+              ${(alt.items||[]).map(item => `
+                <div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed var(--border); font-size:13px">
+                  <span>• ${item.food_name || item.name}</span>
+                  <span style="color:var(--text-dim)">${item.quantity_grams || item.amount || 0}g</span>
+                </div>`).join('')}
+            </div>
+          `).join('');
+        } else {
+          mealBody = `<p style="color:var(--text-dim); font-size:13px">لا يوجد بيانات للوجبة</p>`;
+        }
+        
+        return `
+          <div class="card" style="margin-bottom:15px; border-left:4px solid var(--lime)">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+              <div>
+                <h4 style="color:var(--lime); margin-bottom:3px">${m.name}</h4>
+                ${mealTime ? `<div style="font-size:12px; color:var(--text-dim)">${mealTime}${mealRole ? ' · ' + mealRole : ''}</div>` : ''}
+              </div>
+              <span class="tag" style="background:rgba(204,255,0,0.1); color:var(--lime)">${m.calories} سعرة</span>
+            </div>
+            <div style="color:var(--text); line-height:1.6; font-size:14px">
+              ${mealBody}
+            </div>
+          </div>
+        `;
+      } catch(e) {
+        // fallback for old plain-text items
+        return `
+          <div class="card" style="margin-bottom:15px; border-left:4px solid var(--lime)">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+              <h4 style="color:var(--lime)">${m.name}</h4>
+              <span class="tag" style="background:rgba(204,255,0,0.1); color:var(--lime)">${m.calories} سعرة</span>
+            </div>
+            <div style="color:var(--text); line-height:1.6; font-size:14px">
+              ${m.items.split('+').map(item => `<div style="padding-left:15px; position:relative"><span style="position:absolute; right:0; top:0; color:var(--gold)">•</span> ${item.trim()}</div>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }).join('');
+
     
     document.getElementById('planReviewArea').innerHTML = `
       <div class="grid grid-3" style="gap:15px; margin-bottom:20px">
