@@ -55,16 +55,18 @@ body::before{
 
 .sidebar-toggle{
   display:none;
-  width:30px; height:30px;
+  width:32px; height:32px;
   flex-shrink:0;
   border:1px solid var(--border);
-  border-radius:9px;
+  border-radius:8px;
   background:var(--surface-2);
-  align-items:center; justify-content:center; gap:4px;
+  flex-direction:column; align-items:center; justify-content:center; gap:4px;
   padding:0;
   color:var(--text);
   transition:.2s;
+  cursor: pointer;
 }
+
 .sidebar-toggle span{
   display:block;
   width:14px;
