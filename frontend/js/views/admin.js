@@ -365,8 +365,8 @@ views['a-chat'] = async () => {
   if (activeChatUserId) {
     const activeConvo = convos.find(c => c.user_id === activeChatUserId);
     const msgs = await apiFetch(`/chat/${activeChatUserId}`);
-    const initial = activeConvo ? activeConvo.name[0].toUpperCase() : '?';
-    const name = activeConvo ? activeConvo.name : '';
+    const initial = (activeConvo && activeConvo.name && activeConvo.name.length > 0) ? activeConvo.name[0].toUpperCase() : '?';
+    const name = activeConvo ? (activeConvo.name || 'مستخدم غير معروف') : '';
     
     chatMainHtml = `
     <div class="chat-main">
@@ -420,13 +420,15 @@ views['a-chat'] = async () => {
       ` : ''}
       ${convos.map(c => {
         const timeStr = '12:00'; // Placeholder
+        const initial = (c.name && c.name.length > 0) ? c.name[0].toUpperCase() : '?';
+        const nameStr = c.name || 'مستخدم غير معروف';
         return `
         <div class="chat-item ${c.user_id === activeChatUserId ? 'active' : ''}" 
              onclick="activeChatUserId=${c.user_id}; goView('a-chat')">
-          <div class="chat-item-avatar">${c.name[0].toUpperCase()}</div>
+          <div class="chat-item-avatar">${initial}</div>
           <div class="chat-item-info">
             <div class="chat-item-header-row">
-              <div class="chat-item-name">${c.name}</div>
+              <div class="chat-item-name">${nameStr}</div>
               <div class="chat-item-time">${timeStr}</div>
             </div>
             <div class="chat-item-msg-row">
