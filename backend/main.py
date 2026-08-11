@@ -22,12 +22,25 @@ from api.deps import hash_password
 # ── Create tables ──
 Base.metadata.create_all(bind=engine)
 
+import traceback
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
 # ── App ──
 app = FastAPI(
     title="FORM Fitness OS — API",
     description="نظام إدارة الجيم بالذكاء الاصطناعي",
     version="1.0.0",
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    tb = traceback.format_exc()
+    # Return 500 but with detail containing the traceback
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error\n\n{tb}"}
+    )
 
 # ── CORS ──
 app.add_middleware(

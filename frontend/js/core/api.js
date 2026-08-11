@@ -147,7 +147,7 @@ async function goView(id){
     const html = await views[id]();
     content.innerHTML = html;
   } catch(e) {
-    content.innerHTML = `<p style="color:var(--coral);padding:20px">❌ ${e.message}</p>`;
+    content.innerHTML = `<p style="color:var(--coral);padding:20px;text-align:left;font-size:1rem;font-weight:bold;white-space:pre-wrap;direction:ltr;background:var(--surface-2);border-radius:8px;margin:20px;">❌ ${e.message}</p>`;
     console.error(e);
   }
   
