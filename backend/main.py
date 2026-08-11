@@ -24,7 +24,10 @@ Base.metadata.create_all(bind=engine)
 
 def upgrade_db_schema():
     from sqlalchemy import text
-    with engine.begin() as conn:
+    import traceback
+    # Use AUTOCOMMIT so that if one column already exists and throws an error, 
+    # it doesn't abort the entire transaction block in PostgreSQL.
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
         # Add new columns to nutrition_plans
         cols_nutrition = [
             "total_protein FLOAT",
@@ -39,12 +42,12 @@ def upgrade_db_schema():
         ]
         for col in cols_nutrition:
             try:
-                col_name = col.split()[0]
                 conn.execute(text(f"ALTER TABLE nutrition_plans ADD COLUMN {col}"))
-            except Exception:
-                pass
+            except Exception as e:
+                if "already exists" not in str(e) and "Duplicate column" not in str(e):
+                    print(f"Error adding {col} to nutrition_plans: {e}")
                 
-        # Add new columns to inbody_readings (if any were added recently)
+        # Add new columns to inbody_readings
         cols_inbody = [
             "bmi FLOAT",
             "vfi FLOAT",
@@ -63,8 +66,9 @@ def upgrade_db_schema():
         for col in cols_inbody:
             try:
                 conn.execute(text(f"ALTER TABLE inbody_readings ADD COLUMN {col}"))
-            except Exception:
-                pass
+            except Exception as e:
+                if "already exists" not in str(e) and "Duplicate column" not in str(e):
+                    print(f"Error adding {col} to inbody_readings: {e}")
 
 upgrade_db_schema()
 
