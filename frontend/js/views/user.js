@@ -1195,30 +1195,130 @@ async function deleteUserInBody(id) {
   }
 }
 
-/* ---- User Analytics ---- */
+/* ---- User Analytics / Progress ---- */
 views['u-analytics'] = async () => {
   let history = [];
-  try {
-    history = await apiFetch('/inbody/me');
-  } catch(e) {
-    console.error(e);
-  }
-  
+  try { history = await apiFetch('/inbody/me'); } catch(e) { console.error(e); }
+
   let workoutHistory = [];
   try {
-      const userRes = await apiFetch('/auth/me');
-      if (userRes && userRes.id) {
-          workoutHistory = await apiFetch('/workouts/history/' + userRes.id);
-      }
-  } catch(e) {
-      console.error(e);
-  }
-  
+    const userRes = await apiFetch('/auth/me');
+    if (userRes && userRes.id) workoutHistory = await apiFetch('/workouts/history/' + userRes.id);
+  } catch(e) { console.error(e); }
+
+  // Load existing body photos
+  let photos = { front: null, back: null, side: null, date: null };
+  try { photos = await apiFetch('/inbody/my-photos'); } catch(e) {}
+
+  const hasPhotos = photos.front || photos.back || photos.side;
+
   return `
-    <div class="page-head"><h1>تقدمي</h1><p>متابعة التزامك وتطورك</p></div>
+    <div class="page-head"><h1>تقدمي 📈</h1><p>متابعة التزامك وتطورك</p></div>
+
+    <!-- Body Photos Section -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="section-title">📸 صور تقدم الجسم <span>الوش / الظهر / الجنب</span></div>
+
+      ${hasPhotos ? `
+      <div style="margin-bottom:20px">
+        <p style="color:var(--text-dim); font-size:13px; margin-bottom:12px">
+          آخر تحديث: ${photos.date || '—'}
+        </p>
+        <div class="photos-upload-grid">
+          <div class="photo-slot" style="cursor:default">
+            ${photos.front
+              ? `<img src="${photos.front}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الوش</div>`
+              : `<div class="photo-icon">👤</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+          </div>
+          <div class="photo-slot" style="cursor:default">
+            ${photos.back
+              ? `<img src="${photos.back}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الظهر</div>`
+              : `<div class="photo-icon">🔄</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+          </div>
+          <div class="photo-slot" style="cursor:default">
+            ${photos.side
+              ? `<img src="${photos.side}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الجنب</div>`
+              : `<div class="photo-icon">👤</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+          </div>
+        </div>
+      </div>` : ''}
+
+      <div>
+        <p style="color:var(--text-dim); font-size:13px; margin-bottom:12px">
+          ${hasPhotos ? '📤 رفع صور جديدة (ستحل محل السابقة وسيراها الكابتن)' : '📤 ارفع صورك حتى يتابع الكابتن تقدمك'}
+        </p>
+        <div class="photos-upload-grid">
+          <div>
+            <div class="photo-slot" id="uSlotFront" onclick="document.getElementById('uPhotoFront').click()">
+              <div class="photo-icon">👤</div>
+              <div class="photo-label">صورة الوش</div>
+            </div>
+            <input type="file" id="uPhotoFront" accept="image/*" style="display:none" onchange="previewBodyPhoto(this,'uSlotFront')">
+          </div>
+          <div>
+            <div class="photo-slot" id="uSlotBack" onclick="document.getElementById('uPhotoBack').click()">
+              <div class="photo-icon">🔄</div>
+              <div class="photo-label">صورة الظهر</div>
+            </div>
+            <input type="file" id="uPhotoBack" accept="image/*" style="display:none" onchange="previewBodyPhoto(this,'uSlotBack')">
+          </div>
+          <div>
+            <div class="photo-slot" id="uSlotSide" onclick="document.getElementById('uPhotoSide').click()">
+              <div class="photo-icon">👤</div>
+              <div class="photo-label">صورة الجنب</div>
+            </div>
+            <input type="file" id="uPhotoSide" accept="image/*" style="display:none" onchange="previewBodyPhoto(this,'uSlotSide')">
+          </div>
+        </div>
+        <p style="font-size:12px; color:var(--text-dim); margin:10px 0">اضغط على أي صورة لاختيار الملف. بعد الاختيار اضغط رفع.</p>
+        <button class="btn btn-primary" id="uUploadPhotosBtn" onclick="uploadMyBodyPhotos()">📤 رفع الصور</button>
+      </div>
+    </div>
+
+    <!-- Analytics -->
     ${renderAnalyticsDashboard(history, workoutHistory)}
   `;
 }
+
+async function uploadMyBodyPhotos() {
+  const front = document.getElementById('uPhotoFront');
+  const back  = document.getElementById('uPhotoBack');
+  const side  = document.getElementById('uPhotoSide');
+
+  if (!front.files[0] && !back.files[0] && !side.files[0]) {
+    toast('⚠️ اختر صورة واحدة على الأقل'); return;
+  }
+
+  const formData = new FormData();
+  if (front.files[0]) formData.append('front', front.files[0]);
+  if (back.files[0])  formData.append('back',  back.files[0]);
+  if (side.files[0])  formData.append('side',  side.files[0]);
+
+  const btn = document.getElementById('uUploadPhotosBtn');
+  btn.disabled = true;
+  btn.innerText = 'جاري الرفع...';
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(API_BASE + '/inbody/my-photos', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'فشل رفع الصور');
+    }
+    toast('✅ تم رفع صورك بنجاح! سيراها الكابتن على الفور.');
+    setTimeout(() => goView('u-analytics'), 800);
+  } catch(e) {
+    toast('❌ ' + e.message);
+    btn.disabled = false;
+    btn.innerText = '📤 رفع الصور';
+  }
+}
+
+
 
 /* ---- User Settings ---- */
 views['u-settings'] = ()=>`

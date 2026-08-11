@@ -247,3 +247,84 @@ def delete_inbody(reading_id: int, current_user: User = Depends(get_current_user
     db.delete(reading)
     db.commit()
     return {"message": "تم مسح القراءة بنجاح"}
+
+
+# ── User: Upload Own Body Progress Photos ──
+
+import cloudinary
+import cloudinary.uploader
+from fastapi import File, UploadFile
+
+cloudinary.config(
+  cloud_name='a41n5x6q',
+  api_key='899781447338393',
+  api_secret='m_P69u4vqCBqeVxzfOtYSAqu5po'
+)
+
+@router.post("/my-photos")
+async def upload_my_body_photos(
+    front: UploadFile = File(None),
+    back: UploadFile = File(None),
+    side: UploadFile = File(None),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """يخلي العميل يرفع صوره بنفسه (وش/ظهر/جنب)، وتظهر عند الأدمن تلقائياً"""
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if not profile:
+        profile = ClientProfile(user_id=current_user.id)
+        db.add(profile)
+
+    if not (front and front.filename) and not (back and back.filename) and not (side and side.filename):
+        raise HTTPException(status_code=400, detail="اختر صورة واحدة على الأقل")
+
+    async def upload_photo(file: UploadFile, tag: str) -> str:
+        contents = await file.read()
+        from datetime import datetime as dt
+        res = cloudinary.uploader.upload(
+            contents,
+            folder=f"body_photos/{current_user.id}",
+            public_id=f"{current_user.id}_{tag}_{dt.utcnow().strftime('%Y%m%d%H%M%S')}",
+            resource_type="image"
+        )
+        return res.get("secure_url", "")
+
+    uploaded = {}
+    if front and front.filename:
+        profile.body_photo_front = await upload_photo(front, "front")
+        uploaded["front"] = profile.body_photo_front
+    if back and back.filename:
+        profile.body_photo_back = await upload_photo(back, "back")
+        uploaded["back"] = profile.body_photo_back
+    if side and side.filename:
+        profile.body_photo_side = await upload_photo(side, "side")
+        uploaded["side"] = profile.body_photo_side
+
+    if uploaded:
+        from datetime import datetime as dt
+        profile.body_photo_date = dt.utcnow()
+
+    db.commit()
+    return {
+        "status": "ok",
+        "uploaded": uploaded,
+        "photo_date": profile.body_photo_date.strftime("%Y-%m-%d") if profile.body_photo_date else ""
+    }
+
+
+@router.get("/my-photos")
+def get_my_body_photos(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """جيب صور تقدم العميل الحالي"""
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if not profile:
+        return {"front": None, "back": None, "side": None, "date": None}
+    return {
+        "front": profile.body_photo_front,
+        "back": profile.body_photo_back,
+        "side": profile.body_photo_side,
+        "date": profile.body_photo_date.strftime("%Y-%m-%d") if profile.body_photo_date else None
+    }
+
