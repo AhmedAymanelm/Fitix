@@ -44,10 +44,11 @@ body::before{
   display:flex; align-items:center; justify-content:space-between;
   padding:0 24px;
   border-bottom:1px solid var(--border);
-  position:sticky; top:0; z-index:50;
-  background:rgba(13,14,16,.85);
+  position:sticky; top:0; z-index:1500;
+  background:rgba(13,14,16,.95);
   backdrop-filter:blur(10px);
 }
+
 .brand{display:flex; align-items:center; gap:10px; font-weight:900; font-size:20px; letter-spacing:.5px;}
 .brand .dot{width:10px; height:10px; border-radius:3px; background:var(--lime); box-shadow:0 0 14px var(--lime);}
 .brand small{font-family:'Tajawal'; font-weight:500; color:var(--text-dim); font-size:12px; margin-right:6px;}
@@ -408,50 +409,49 @@ body::before{
 @media(max-width:880px){
   .brand-dot{display:none;}
   .sidebar-toggle{display:flex;}
-  .topbar{padding:0 14px;}
+  .topbar{padding:0 14px; z-index:1500;}
   .topbar-right{gap:10px;}
   #liveClockWidget{display:none !important;}
   .sidebar{
     position:fixed;
-    right:-320px;
+    right:-100%;
     top:0;
     bottom:0;
-    z-index:1300;
+    z-index:1400;
     width:280px;
     max-width:85vw;
     background:linear-gradient(180deg, rgba(18,19,22,1), rgba(13,14,16,1));
-    border-left:1px solid var(--border);
+    border-left:1px solid rgba(200,255,61,0.15);
     border-right:none;
-    border-radius:24px 0 0 24px;
-    box-shadow:-10px 0 40px rgba(0,0,0,0.8);
-    transition:right .3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius:20px 0 0 20px;
+    box-shadow:-6px 0 40px rgba(0,0,0,0.9);
+    transition:right .28s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y:auto;
+    overflow-x:hidden;
     -webkit-overflow-scrolling:touch;
-    padding-top: 64px;
+    padding-top:64px;
   }
   .sidebar.open{
-    right:0 !important;
+    right:0;
   }
   .sidebar-backdrop{
     position:fixed;
     inset:0;
-    background:rgba(0,0,0,0.6);
-    backdrop-filter:blur(3px);
-    -webkit-backdrop-filter:blur(3px);
-    z-index:1200;
+    background:rgba(0,0,0,0.65);
+    z-index:1350;
     opacity:0;
     pointer-events:none;
-    transition:opacity .3s ease;
+    transition:opacity .28s ease;
   }
   .sidebar-backdrop.open{
-    opacity:1 !important;
-    pointer-events:auto !important;
+    opacity:1;
+    pointer-events:auto;
   }
-
   .content{padding:18px;}
   .chat-list{width:180px;}
   .grid-4, .grid-3, .grid-2{grid-template-columns:1fr;}
 }
+
 
 /* ---------- login screen ---------- */
 .login-screen{
