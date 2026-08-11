@@ -377,7 +377,6 @@ views['a-chat'] = async () => {
         <div class="chat-head-avatar">${initial}</div>
         <div class="chat-head-info">
           <div class="chat-head-name">${name}</div>
-          <div class="chat-head-status">متصل الآن</div>
         </div>
       </div>
       <div class="chat-body" id="chatBody">

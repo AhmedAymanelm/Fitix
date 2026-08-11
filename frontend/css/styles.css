@@ -506,36 +506,41 @@ body::before{
 /* ── Mobile Chat ── */
 @media (max-width: 700px) {
   .chat-wrap {
-    height: calc(100dvh - 130px);
+    height: calc(100dvh - 90px);
     min-height: unset;
     max-height: unset;
-    border-radius: 0; /* Full bleed on mobile */
+    border-radius: 0;
     border: none;
-    margin: -18px; /* Override container padding if any */
+    margin: -18px -18px 0 -18px;
+    flex-direction: column;
   }
   .chat-list {
     width: 100%;
+    height: 100%;
     border-left: none;
+    flex: 1;
   }
   .chat-wrap:not(.chat-in-convo) .chat-main {
-    display: none;
+    display: none !important;
   }
   .chat-list-hidden-mobile {
-    display: none;
+    display: none !important;
   }
   .chat-in-convo .chat-list {
-    display: none;
+    display: none !important;
   }
   .chat-in-convo .chat-main {
     width: 100%;
+    height: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
   }
   .chat-back-btn {
     display: flex !important;
   }
-  
-  /* Hide page header on mobile chat view to save space */
-  .chat-in-convo ~ .page-head,
-  .page-head:has(+ .chat-in-convo) {
+  /* Hide page header always when on chat page on mobile */
+  .page-head:has(+ .chat-wrap) {
     display: none;
   }
 }
