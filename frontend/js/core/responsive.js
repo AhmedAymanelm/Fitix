@@ -4,53 +4,9 @@
    ========================================================= */
 (function () {
   function injectMobileFixes() {
-    if (document.getElementById('fitix-mobile-final-fixes')) return;
-    const style = document.createElement('style');
-    style.id = 'fitix-mobile-final-fixes';
-    style.textContent = `
-      @media (max-width: 768px) {
-        .mobile-menu-btn {
-          position: fixed !important;
-          top: 6px !important;
-          right: 84px !important;
-          left: auto !important;
-          width: 52px !important;
-          height: 52px !important;
-          min-width: 52px !important;
-          min-height: 52px !important;
-          z-index: 1400 !important;
-          outline: none !important;
-          pointer-events: auto !important;
-          touch-action: manipulation !important;
-        }
-        .mobile-menu-btn:focus,
-        .mobile-menu-btn:focus-visible,
-        .mobile-menu-btn:active {
-          outline: none !important;
-          box-shadow: 0 5px 18px rgba(0,0,0,.28) !important;
-        }
-        .sidebar {
-          pointer-events: none !important;
-        }
-        .mobile-menu-open .sidebar {
-          pointer-events: auto !important;
-        }
-        .sidebar .nav-item {
-          pointer-events: auto !important;
-          cursor: pointer !important;
-          touch-action: manipulation !important;
-        }
-      }
-      @media (max-width: 430px) {
-        .mobile-menu-btn {
-          top: 6px !important;
-          right: 84px !important;
-          left: auto !important;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+    // No more injected CSS, everything is handled in responsive.css
   }
+
 
   function initMobileDrawer() {
     const appShell = document.getElementById('appShell');
@@ -69,8 +25,14 @@
       btn.setAttribute('aria-expanded', 'false');
       btn.innerHTML = '<span></span><span></span><span></span>';
       btn.addEventListener('click', toggleMobileDrawer);
-      topbar.appendChild(btn);
+      const brand = topbar.querySelector('.brand');
+      if (brand) {
+        brand.insertBefore(btn, brand.firstChild);
+      } else {
+        topbar.appendChild(btn);
+      }
     }
+
 
     if (!document.getElementById('mobileMenuOverlay')) {
       const overlay = document.createElement('div');
@@ -80,10 +42,7 @@
       appShell.insertBefore(overlay, appShell.firstChild);
     }
 
-    /*
-      Use capture phase so mobile navigation is reliable even when
-      renderSidebar() replaces the nav DOM after goView().
-    */
+    /* Simple delegated click listener for sidebar nav items */
     if (!sidebar.dataset.mobileClickBound) {
       sidebar.dataset.mobileClickBound = '1';
       sidebar.addEventListener('click', function (event) {
@@ -94,17 +53,18 @@
         if (!viewId) return;
 
         event.preventDefault();
-        event.stopImmediatePropagation();
+        event.stopPropagation();
+        
+        closeMobileDrawer();
 
         if (typeof window.goView === 'function') {
           window.goView(viewId);
         } else {
           item.click();
         }
-
-        closeMobileDrawer();
-      }, true);
+      });
     }
+
 
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape') closeMobileDrawer();

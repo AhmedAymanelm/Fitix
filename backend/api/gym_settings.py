@@ -11,6 +11,15 @@ from config.database import get_db
 from models.notification import GymSettings
 from api.deps import get_current_admin, get_current_user
 from models.user import User
+import cloudinary
+import cloudinary.uploader
+
+cloudinary.config(
+  cloud_name = 'a41n5x6q',
+  api_key = '899781447338393',
+  api_secret = 'm_P69u4vqCBqeVxzfOtYSAqu5po'
+)
+
 
 router = APIRouter(prefix="/api/gym-settings", tags=["Gym Settings"])
 
@@ -63,16 +72,13 @@ def update_gym_settings(payload: GymSettingsUpdate, db: Session = Depends(get_db
 # ── POST: رفع اللوجو (أدمن فقط) ──
 @router.post("/logo", dependencies=[Depends(get_current_admin)])
 async def upload_logo(file: UploadFile = File(...), db: Session = Depends(get_db)):
-    # حفظ الملف
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in [".png", ".jpg", ".jpeg", ".svg", ".webp"]:
         return {"error": "صيغة الملف غير مدعومة"}
 
-    logo_path = os.path.join(UPLOAD_DIR, f"gym_logo{ext}")
-    with open(logo_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-
-    logo_url = f"/uploads/logos/gym_logo{ext}"
+    contents = await file.read()
+    res = cloudinary.uploader.upload(contents, folder="gym_logos", resource_type="auto")
+    logo_url = res.get("secure_url")
 
     s = db.query(GymSettings).first()
     if not s:
