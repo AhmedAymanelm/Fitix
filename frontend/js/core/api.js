@@ -4,8 +4,13 @@ async function apiFetch(path, options={}) {
   if(token) headers['Authorization'] = `Bearer ${token}`;
   
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  const data = await res.json();
-  if(!res.ok) throw new Error(data.detail || 'حدث خطأ في السيرفر');
+  let data;
+  try {
+    data = await res.json();
+  } catch(e) {
+    throw new Error(`خطأ في السيرفر (${res.status})`);
+  }
+  if(!res.ok) throw new Error(data.detail || `خطأ في السيرفر (${res.status})`);
   return data;
 }
 

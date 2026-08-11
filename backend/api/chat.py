@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, and_, desc
-from datetime import datetime
+from datetime import datetime, timezone
 
 from config.database import get_db
 from models.user import User
@@ -40,23 +40,35 @@ def get_conversations(current_user: User = Depends(get_current_user), db: Sessio
             Message.is_read == False
         ).count()
         
+        # Use a sortable timestamp — 0 epoch for no messages
+        last_ts = 0
+        if last_msg and last_msg.sent_at:
+            try:
+                dt = last_msg.sent_at
+                if dt.tzinfo is not None:
+                    last_ts = dt.timestamp()
+                else:
+                    last_ts = dt.replace(tzinfo=timezone.utc).timestamp()
+            except Exception:
+                last_ts = 0
+        
         convos.append({
             "user_id": u.id,
             "name": u.full_name,
             "last_message": last_msg.content if last_msg else "بدء المحادثة...",
-            "last_time": last_msg.sent_at if last_msg else datetime.min,
+            "_sort_ts": last_ts,
             "unread": unread
         })
     
-    # Sort by last message time, descending
-    convos.sort(key=lambda x: x["last_time"], reverse=True)
+    # Sort by last message time, descending (most recent first)
+    convos.sort(key=lambda x: x["_sort_ts"], reverse=True)
     
-    # Remove last_time before returning to avoid JSON serialization issues if not needed, 
-    # but FastAPI handles datetime natively.
+    # Remove internal sort key
     for c in convos:
-        del c["last_time"]
+        del c["_sort_ts"]
         
     return convos
+
 
 @router.get("/{user_id}")
 def get_chat_history(user_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
