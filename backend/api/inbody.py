@@ -328,3 +328,31 @@ def get_my_body_photos(
         "date": profile.body_photo_date.strftime("%Y-%m-%d") if profile.body_photo_date else None
     }
 
+
+@router.delete("/my-photos/{slot}")
+def delete_my_body_photo(
+    slot: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """مسح صورة واحدة (front / back / side) من صور تقدم العميل"""
+    if slot not in ("front", "back", "side"):
+        raise HTTPException(status_code=400, detail="slot يجب أن يكون front أو back أو side")
+
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="الملف الشخصي غير موجود")
+
+    if slot == "front":
+        profile.body_photo_front = None
+    elif slot == "back":
+        profile.body_photo_back = None
+    elif slot == "side":
+        profile.body_photo_side = None
+
+    # If all photos are gone, clear the date too
+    if not profile.body_photo_front and not profile.body_photo_back and not profile.body_photo_side:
+        profile.body_photo_date = None
+
+    db.commit()
+    return {"status": "ok", "deleted": slot}

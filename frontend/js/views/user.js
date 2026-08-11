@@ -1225,20 +1225,29 @@ views['u-analytics'] = async () => {
           آخر تحديث: ${photos.date || '—'}
         </p>
         <div class="photos-upload-grid">
-          <div class="photo-slot" style="cursor:default">
-            ${photos.front
-              ? `<img src="${photos.front}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الوش</div>`
-              : `<div class="photo-icon">👤</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+          <div style="position:relative">
+            <div class="photo-slot" style="cursor:default">
+              ${photos.front
+                ? `<img src="${photos.front}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الوش</div>`
+                : `<div class="photo-icon">👤</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+            </div>
+            ${photos.front ? `<button onclick="deleteMyPhoto('front')" style="position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;background:rgba(220,50,50,0.85);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:5" title="مسح صورة الوش">✕</button>` : ''}
           </div>
-          <div class="photo-slot" style="cursor:default">
-            ${photos.back
-              ? `<img src="${photos.back}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الظهر</div>`
-              : `<div class="photo-icon">🔄</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+          <div style="position:relative">
+            <div class="photo-slot" style="cursor:default">
+              ${photos.back
+                ? `<img src="${photos.back}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الظهر</div>`
+                : `<div class="photo-icon">🔄</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+            </div>
+            ${photos.back ? `<button onclick="deleteMyPhoto('back')" style="position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;background:rgba(220,50,50,0.85);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:5" title="مسح صورة الظهر">✕</button>` : ''}
           </div>
-          <div class="photo-slot" style="cursor:default">
-            ${photos.side
-              ? `<img src="${photos.side}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الجنب</div>`
-              : `<div class="photo-icon">👤</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+          <div style="position:relative">
+            <div class="photo-slot" style="cursor:default">
+              ${photos.side
+                ? `<img src="${photos.side}" style="width:100%;height:100%;object-fit:cover"><div class="photo-date-badge">📸 الجنب</div>`
+                : `<div class="photo-icon">👤</div><div class="photo-label" style="color:var(--text-dim)">لم يُرفع</div>`}
+            </div>
+            ${photos.side ? `<button onclick="deleteMyPhoto('side')" style="position:absolute;top:6px;left:6px;width:26px;height:26px;border-radius:50%;background:rgba(220,50,50,0.85);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;z-index:5" title="مسح صورة الجنب">✕</button>` : ''}
           </div>
         </div>
       </div>` : ''}
@@ -1318,6 +1327,17 @@ async function uploadMyBodyPhotos() {
   }
 }
 
+async function deleteMyPhoto(slot) {
+  const label = { front: 'الوش', back: 'الظهر', side: 'الجنب' }[slot] || slot;
+  if (!confirm(`هل تريد مسح صورة ${label}؟`)) return;
+  try {
+    await apiFetch(`/inbody/my-photos/${slot}`, { method: 'DELETE' });
+    toast(`✅ تم مسح صورة ${label} بنجاح`);
+    setTimeout(() => goView('u-analytics'), 600);
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+}
 
 
 /* ---- User Settings ---- */
