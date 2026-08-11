@@ -1473,6 +1473,11 @@ views['u-nutrition'] = async () => {
     </div>
   </div>
 
+  <!-- زر تحميل النظام الغذائي -->
+  <button onclick="printUserNutrition()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:var(--surface-2);border:1.5px solid var(--primary);color:var(--primary);border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:20px;transition:all 0.2s" onmouseover="this.style.background='var(--primary)';this.style.color='#000'" onmouseout="this.style.background='var(--surface-2)';this.style.color='var(--primary)'">
+    📥 تحميل / طباعة النظام الغذائي
+  </button>
+
   <!-- الوجبات -->
   ${mealsCards.join('')}
 
@@ -1491,3 +1496,95 @@ views['u-nutrition'] = async () => {
   </div>` : ''}
   `;
 };
+
+// ── طباعة / تحميل النظام الغذائي للعميل ──
+window.printUserNutrition = async function() {
+  try {
+    const plan = await apiFetch('/workouts/my-nutrition');
+    if (!plan || !plan.meals) { alert('لا يوجد نظام غذائي لتحميله.'); return; }
+
+    const me = JSON.parse(localStorage.getItem('user') || '{}');
+    const gs = window._gymSettings || {};
+    const today = new Date().toLocaleDateString('ar-EG', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+    function formatPrintMeal(m) {
+      if (!m) return '';
+      try {
+        const parsed = JSON.parse(m.items);
+        const alts = parsed.alternatives || [];
+        if (alts.length > 0) {
+          return alts[0].items.map(i => `<div style="margin-bottom:4px">• ${i.food_name || i.name} (${i.quantity_grams || i.amount || 0}g)</div>`).join('');
+        }
+        return '';
+      } catch(e) {
+        return m.items.split('+').map(item => `<div>• ${item.trim()}</div>`).join('');
+      }
+    }
+
+    const m1 = plan.meals[0];
+    const m2 = plan.meals[1];
+    const m3 = plan.meals[2];
+    const m4 = plan.meals[3];
+    const clientNotes = plan.client_notes || plan.notes || plan.goal || '';
+
+    const printWin = window.open('', '_blank');
+    printWin.document.write(`
+      <html dir="rtl">
+      <head>
+        <title>نظامي الغذائي</title>
+        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&display=swap" rel="stylesheet">
+        <style>
+          @page { size: A4; margin: 0; }
+          body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Cairo', sans-serif; }
+          .page {
+            width: 210mm;
+            height: 297mm;
+            position: relative;
+            background-image: url('assets/images/template.jpg');
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            background-position: center;
+          }
+          .abs { position: absolute; color: #000; font-weight: 700; }
+          .name { top: 9.5%; right: 28%; font-size: 20px; }
+          .date { top: 12.5%; right: 18%; font-size: 16px; }
+          .next-visit { top: 12.5%; right: 55%; font-size: 16px; }
+          .meal-box { width: 33%; height: 16%; font-size: 13px; overflow: hidden; line-height: 1.4; }
+          .meal-1 { top: 32%; right: 9%; }
+          .meal-2 { top: 32%; left: 9%; }
+          .meal-3 { top: 62%; right: 9%; }
+          .meal-4 { top: 62%; left: 9%; }
+          .notes { bottom: 10%; right: 20%; width: 50%; height: 9%; font-size: 14px; overflow: hidden; line-height: 1.8; padding-top:5px; }
+          @media print { .no-print { display: none !important; } }
+        </style>
+      </head>
+      <body>
+        <div class="no-print" style="padding:20px;background:#fff3cd;color:#856404;text-align:center;font-size:18px;">
+          <b>اضغط Ctrl+P أو ⌘+P للطباعة / التحميل كـ PDF</b><br>
+          <button onclick="window.print()" style="margin-top:10px;padding:10px 30px;font-size:16px;background:#4caf50;color:#fff;border:none;border-radius:8px;cursor:pointer;">🖨️ طباعة / تحميل</button>
+        </div>
+        <div class="page">
+          <div class="abs name">${me.full_name || me.name || 'العميل'}</div>
+          <div class="abs date">${today}</div>
+          <div class="abs next-visit">بعد أسبوعين</div>
+          <div class="abs meal-box meal-1">${formatPrintMeal(m1)}</div>
+          <div class="abs meal-box meal-2">${formatPrintMeal(m2)}</div>
+          <div class="abs meal-box meal-3">${formatPrintMeal(m3)}</div>
+          <div class="abs meal-box meal-4">${formatPrintMeal(m4)}</div>
+          <div class="abs notes">${clientNotes}</div>
+        </div>
+        <script>
+          setTimeout(() => { window.print(); }, 800);
+        </script>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+
+  } catch(e) {
+    console.error(e);
+    alert('حدث خطأ أثناء تجهيز الطباعة.');
+  }
+}
+
+
