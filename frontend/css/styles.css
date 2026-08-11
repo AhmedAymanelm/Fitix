@@ -517,6 +517,9 @@ body::before{
     width: 100%;
     border-left: none;
   }
+  .chat-wrap:not(.chat-in-convo) .chat-main {
+    display: none;
+  }
   .chat-list-hidden-mobile {
     display: none;
   }
