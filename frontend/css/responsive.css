@@ -253,23 +253,6 @@ img, svg, video, canvas {
   select,
   textarea { max-width: 100%; }
 
-  /* ---------- Chat ---------- */
-  .chat-wrap {
-    height: calc(100vh - 145px);
-    min-height: 460px;
-    max-height: 680px;
-    width: 100%;
-  }
-
-  .chat-list { width: 92px; flex: 0 0 92px; }
-  .chat-item { padding: 10px 6px; justify-content: center; }
-  .chat-item > div:not(.avatar):not(.client-avatar) { display: none; }
-  .chat-item .ci-msg, .chat-item .ci-name { display: none; }
-  .chat-main { min-width: 0; }
-  .bubble { max-width: 82%; }
-  .chat-input { padding: 8px; }
-  .chat-input input { min-width: 0; }
-
   /* ---------- Other mobile components ---------- */
   .page-head { margin-bottom: 18px; }
   .page-head h1 { font-size: 22px; line-height: 1.45; }

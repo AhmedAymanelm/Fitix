@@ -482,8 +482,8 @@ views['a-chat'] = async () => {
     </div>
   </div>
   <div class="chat-wrap">
-    ${chatMainHtml}
     ${getChatListHtml(false)}
+    ${chatMainHtml}
   </div>
   `;
 }
