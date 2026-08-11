@@ -35,16 +35,24 @@ def parse_inbody_image(image_bytes: bytes) -> dict:
         prompt = get_inbody_prompt()
         
         response = client.models.generate_content(
-            model="gemini-flash-latest",
+            model="gemini-1.5-flash",
             contents=[img, prompt],
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                response_schema=InBodyData,
                 temperature=0.1
             )
         )
         
-        data = json.loads(response.text)
+        # Clean up any potential markdown formatting if returned
+        raw_text = response.text.strip()
+        if raw_text.startswith("```json"):
+            raw_text = raw_text[7:]
+        if raw_text.startswith("```"):
+            raw_text = raw_text[3:]
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3]
+            
+        data = json.loads(raw_text.strip())
         data["is_mock"] = False
         return data
         
