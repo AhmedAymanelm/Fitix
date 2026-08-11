@@ -22,6 +22,53 @@ from api.deps import hash_password
 # ── Create tables ──
 Base.metadata.create_all(bind=engine)
 
+def upgrade_db_schema():
+    from sqlalchemy import text
+    with engine.begin() as conn:
+        # Add new columns to nutrition_plans
+        cols_nutrition = [
+            "total_protein FLOAT",
+            "total_carbs FLOAT",
+            "total_fats FLOAT",
+            "caloric_deficit INTEGER",
+            "bmr_used INTEGER",
+            "workout_day_calories INTEGER",
+            "rest_day_calories INTEGER",
+            "admin_notes VARCHAR(2000)",
+            "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+        ]
+        for col in cols_nutrition:
+            try:
+                col_name = col.split()[0]
+                conn.execute(text(f"ALTER TABLE nutrition_plans ADD COLUMN {col}"))
+            except Exception:
+                pass
+                
+        # Add new columns to inbody_readings (if any were added recently)
+        cols_inbody = [
+            "bmi FLOAT",
+            "vfi FLOAT",
+            "ffm FLOAT",
+            "fat_mass FLOAT",
+            "tbw_percent FLOAT",
+            "bmr FLOAT",
+            "score FLOAT",
+            "bio_age FLOAT",
+            "target_weight TEXT",
+            "target_fat TEXT",
+            "target_muscle TEXT",
+            "target_water TEXT",
+            "image_url TEXT"
+        ]
+        for col in cols_inbody:
+            try:
+                conn.execute(text(f"ALTER TABLE inbody_readings ADD COLUMN {col}"))
+            except Exception:
+                pass
+
+upgrade_db_schema()
+
+
 import traceback
 from fastapi import Request
 from fastapi.responses import JSONResponse
