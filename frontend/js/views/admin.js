@@ -539,38 +539,40 @@ views['a-chat'] = async () => {
 }
 
 // ── Live polling for new messages (admin side) ──
+async function fetchChatUpdates() {
+  if (!activeChatUserId) return;
+  const body = document.getElementById('chatBody');
+  if (!body) return;
+  try {
+    const msgs = await apiFetch(`/chat/${activeChatUserId}`);
+    if (!msgs || msgs.length === 0) return;
+    const latestId = msgs[msgs.length - 1].id;
+    if (latestId <= _chatLastMsgId) return;
+    const newMsgs = msgs.filter(m => m.id > _chatLastMsgId);
+    _chatLastMsgId = latestId;
+    newMsgs.forEach(m => {
+      const noMsgs = body.querySelector('.chat-no-msgs');
+      if (noMsgs) noMsgs.remove();
+      const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}) : '';
+      body.insertAdjacentHTML('beforeend', `
+        <div class="bubble-wrap ${m.is_me ? 'out-wrap' : 'in-wrap'}">
+          <div class="bubble ${m.is_me ? 'out' : 'in'}">
+            ${m.content}
+            <div class="bubble-meta">
+              <span class="bubble-time">${timeStr}</span>
+              ${m.is_me ? '<span class="bubble-check">✓✓</span>' : ''}
+            </div>
+          </div>
+        </div>`);
+    });
+    body.scrollTop = body.scrollHeight;
+  } catch(e) { /* ignore */ }
+}
+
 function startChatPoll(initialLastId) {
   if (_chatPollTimer) clearInterval(_chatPollTimer);
   _chatLastMsgId = initialLastId || 0;
-  _chatPollTimer = setInterval(async () => {
-    if (!activeChatUserId) { clearInterval(_chatPollTimer); _chatPollTimer = null; return; }
-    const body = document.getElementById('chatBody');
-    if (!body) { clearInterval(_chatPollTimer); _chatPollTimer = null; return; }
-    try {
-      const msgs = await apiFetch(`/chat/${activeChatUserId}`);
-      if (!msgs || msgs.length === 0) return;
-      const latestId = msgs[msgs.length - 1].id;
-      if (latestId <= _chatLastMsgId) return;
-      const newMsgs = msgs.filter(m => m.id > _chatLastMsgId);
-      _chatLastMsgId = latestId;
-      newMsgs.forEach(m => {
-        const noMsgs = body.querySelector('.chat-no-msgs');
-        if (noMsgs) noMsgs.remove();
-        const timeStr = m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}) : '';
-        body.insertAdjacentHTML('beforeend', `
-          <div class="bubble-wrap ${m.is_me ? 'out-wrap' : 'in-wrap'}">
-            <div class="bubble ${m.is_me ? 'out' : 'in'}">
-              ${m.content}
-              <div class="bubble-meta">
-                <span class="bubble-time">${timeStr}</span>
-                ${m.is_me ? '<span class="bubble-check">✓✓</span>' : ''}
-              </div>
-            </div>
-          </div>`);
-      });
-      body.scrollTop = body.scrollHeight;
-    } catch(e) { /* ignore */ }
-  }, 3000);
+  _chatPollTimer = setInterval(fetchChatUpdates, 3000);
 }
 
 async function sendChat(){
@@ -579,24 +581,22 @@ async function sendChat(){
   const txt = inp.value.trim();
   if(!txt) return;
   
+  inp.value = '';
   const body = document.getElementById('chatBody');
-  // Remove empty state if exists
   const noMsgs = body.querySelector('.chat-no-msgs');
   if (noMsgs) noMsgs.remove();
   
-  const timeStr = 'الآن';
+  const tempId = 'temp-' + Date.now();
   body.insertAdjacentHTML('beforeend', `
-    <div class="bubble-wrap out-wrap">
+    <div id="${tempId}" class="bubble-wrap out-wrap" style="opacity:0.5">
       <div class="bubble out">
         ${txt}
         <div class="bubble-meta">
-          <span class="bubble-time">${timeStr}</span>
-          <span class="bubble-check">✓</span>
+          <span class="bubble-time">...</span>
         </div>
       </div>
     </div>
   `);
-  inp.value='';
   body.scrollTop = body.scrollHeight;
   
   try {
@@ -604,7 +604,12 @@ async function sendChat(){
       method: 'POST',
       body: JSON.stringify({ receiver_id: activeChatUserId, content: txt })
     });
+    const tempEl = document.getElementById(tempId);
+    if(tempEl) tempEl.remove();
+    await fetchChatUpdates();
   } catch(e) {
+    const tempEl = document.getElementById(tempId);
+    if(tempEl) tempEl.remove();
     toast(`❌ خطأ في الإرسال: ${e.message}`);
   }
 }

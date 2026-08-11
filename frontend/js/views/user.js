@@ -1278,40 +1278,42 @@ views['u-chat'] = async () => {
     const body = document.getElementById('uChatBody');
     if (body) {
       body.scrollTop = body.scrollHeight;
-      let lastMsgId = lastId;
-      window._uChatPollTimer = setInterval(async () => {
-        const b = document.getElementById('uChatBody');
-        if (!b) { clearInterval(window._uChatPollTimer); window._uChatPollTimer = null; return; }
-        try {
-          const newMsgs = await apiFetch('/chat/1');
-          if (!newMsgs || newMsgs.length === 0) return;
-          const latestId = newMsgs[newMsgs.length - 1].id;
-          if (latestId <= lastMsgId) return;
-          const fresh = newMsgs.filter(m => m.id > lastMsgId);
-          lastMsgId = latestId;
-          fresh.forEach(m => {
-            const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}) : '';
-            if(m.is_me) {
-              b.insertAdjacentHTML('beforeend', `
-                <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
-                  <div class="ai-bubble user" style="background:var(--surface-3);color:var(--text);border-radius:14px 14px 4px 14px;max-width:75%">${m.content}</div>
-                  ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-right:4px">${time}</div>` : ''}
-                </div>`);
-            } else {
-              b.insertAdjacentHTML('beforeend', `
-                <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
-                  <div class="ai-bubble assistant" style="background:var(--lime);color:#0d0e10;font-weight:600;border-radius:14px 14px 14px 4px;max-width:75%">${m.content}</div>
-                  ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-left:4px">${time}</div>` : ''}
-                </div>`);
-            }
-          });
-          b.scrollTop = b.scrollHeight;
-        } catch(e) { /* ignore */ }
-      }, 3000);
+      window._uChatLastMsgId = lastId;
+      window._uChatPollTimer = setInterval(fetchUChatUpdates, 3000);
     }
   }, 100);
 
   return html;
+}
+
+async function fetchUChatUpdates() {
+  const b = document.getElementById('uChatBody');
+  if (!b) return;
+  try {
+    const newMsgs = await apiFetch('/chat/1');
+    if (!newMsgs || newMsgs.length === 0) return;
+    const latestId = newMsgs[newMsgs.length - 1].id;
+    if (latestId <= window._uChatLastMsgId) return;
+    const fresh = newMsgs.filter(m => m.id > window._uChatLastMsgId);
+    window._uChatLastMsgId = latestId;
+    fresh.forEach(m => {
+      const time = m.created_at ? new Date(m.created_at).toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}) : '';
+      if(m.is_me) {
+        b.insertAdjacentHTML('beforeend', `
+          <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+            <div class="ai-bubble user" style="background:var(--surface-3);color:var(--text);border-radius:14px 14px 4px 14px;max-width:75%">${m.content}</div>
+            ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-right:4px">${time}</div>` : ''}
+          </div>`);
+      } else {
+        b.insertAdjacentHTML('beforeend', `
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+            <div class="ai-bubble assistant" style="background:var(--lime);color:#0d0e10;font-weight:600;border-radius:14px 14px 14px 4px;max-width:75%">${m.content}</div>
+            ${time ? `<div style="font-size:10px;color:var(--text-dimmer);margin-left:4px">${time}</div>` : ''}
+          </div>`);
+      }
+    });
+    b.scrollTop = b.scrollHeight;
+  } catch(e) { /* ignore */ }
 }
 
 async function sendUChat(){
@@ -1319,9 +1321,14 @@ async function sendUChat(){
   const txt = inp.value.trim();
   if(!txt) return;
   
-  const body = document.getElementById('uChatBody');
-  body.insertAdjacentHTML('beforeend', `<div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px"><div class="ai-bubble user" style="background:var(--surface-3);color:var(--text);border-radius:14px 14px 4px 14px;max-width:75%">${txt}</div></div>`);
   inp.value = '';
+  const body = document.getElementById('uChatBody');
+  const tempId = 'temp-' + Date.now();
+  body.insertAdjacentHTML('beforeend', `
+    <div id="${tempId}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;opacity:0.5">
+      <div class="ai-bubble user" style="background:var(--surface-3);color:var(--text);border-radius:14px 14px 4px 14px;max-width:75%">${txt}</div>
+      <div style="font-size:10px;color:var(--text-dimmer);margin-right:4px">...</div>
+    </div>`);
   body.scrollTop = body.scrollHeight;
   
   try {
@@ -1329,7 +1336,12 @@ async function sendUChat(){
       method: 'POST',
       body: JSON.stringify({ receiver_id: 1, content: txt })
     });
+    const tempEl = document.getElementById(tempId);
+    if(tempEl) tempEl.remove();
+    await fetchUChatUpdates();
   } catch(e) {
+    const tempEl = document.getElementById(tempId);
+    if(tempEl) tempEl.remove();
     toast(`❌ خطأ في الإرسال: ${e.message}`);
   }
 }
