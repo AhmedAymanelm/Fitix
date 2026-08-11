@@ -350,7 +350,8 @@ let activeChatUserId = null;
 views['a-chat'] = async () => {
   const convos = await apiFetch('/chat/conversations');
   
-  if(convos.length > 0 && !activeChatUserId) {
+  // On desktop, auto-select first conversation. On mobile, keep it null so the list shows.
+  if(convos.length > 0 && !activeChatUserId && window.innerWidth >= 700) {
     activeChatUserId = convos[0].user_id;
   }
   
