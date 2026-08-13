@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -364,12 +364,11 @@ def get_my_nutrition(current_user: User = Depends(get_current_user), db: Session
 
 @router.post("/my-nutrition-photo")
 async def upload_nutrition_photo(
-    photo: "UploadFile" = None,
+    photo: UploadFile = File(None),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """يخلي العميل يرفع صورة النظام الغذائي بتاعه"""
-    from fastapi import UploadFile
     import cloudinary
     import cloudinary.uploader
     from models import ClientProfile
@@ -460,13 +459,12 @@ def get_client_nutrition_photo(
 @router.post("/admin/upload-video/{user_id}")
 async def admin_upload_video(
     user_id: int,
-    video: "UploadFile" = None,
+    video: UploadFile = File(None),
     title: str = "فيديو من الكابتن",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """الأدمن يرفع فيديو لعميل معين"""
-    from fastapi import UploadFile
     import cloudinary
     import cloudinary.uploader
     from models import ClientProfile
