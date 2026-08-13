@@ -142,14 +142,12 @@ async function goView(id){
     return;
   }
 
-  // Skeleton loader (faster perceived performance)
+  // Clean spinner loader instead of skeleton for smoother transitions
   content.innerHTML = `
-    <div style="padding:20px">
-      <div class="skeleton-box" style="height:48px;margin-bottom:16px;width:55%"></div>
-      <div class="skeleton-box" style="height:130px;margin-bottom:12px"></div>
-      <div class="skeleton-box" style="height:90px;margin-bottom:12px;width:90%"></div>
-      <div class="skeleton-box" style="height:90px;margin-bottom:12px;width:80%"></div>
-      <div class="skeleton-box" style="height:90px;width:70%"></div>
+    <div style="display:flex; justify-content:center; align-items:center; height:60vh; flex-direction:column; gap:15px;">
+      <div style="width:40px; height:40px; border:4px solid var(--surface-3); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite;"></div>
+      <div style="color:var(--text-dim); font-size:14px; font-weight:600;">جاري التحميل...</div>
+      <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
     </div>`;
 
   

@@ -19,26 +19,35 @@ class MessageCreate(BaseModel):
 @router.get("/conversations")
 def get_conversations(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """جلب قائمة المحادثات لليوزر الحالي."""
+    from sqlalchemy import func
     if current_user.role == "admin":
         users = db.query(User).filter(User.role == "user").all()
     else:
         users = db.query(User).filter(User.role == "admin").all()
         
+    # Bulk fetch unread counts
+    unread_query = db.query(Message.sender_id, func.count(Message.id)).filter(
+        Message.receiver_id == current_user.id,
+        Message.is_read == False
+    ).group_by(Message.sender_id).all()
+    unread_map = {sender_id: count for sender_id, count in unread_query}
+    
+    # Bulk fetch recent messages (up to 2000) to find the latest per conversation
+    # This avoids N+1 queries for last message
+    recent_msgs = db.query(Message).filter(
+        or_(Message.sender_id == current_user.id, Message.receiver_id == current_user.id)
+    ).order_by(desc(Message.sent_at)).limit(2000).all()
+    
+    last_msg_map = {}
+    for m in recent_msgs:
+        other_user_id = m.receiver_id if m.sender_id == current_user.id else m.sender_id
+        if other_user_id not in last_msg_map:
+            last_msg_map[other_user_id] = m
+
     convos = []
     for u in users:
-        # Get last message
-        last_msg = db.query(Message).filter(
-            or_(
-                and_(Message.sender_id == current_user.id, Message.receiver_id == u.id),
-                and_(Message.sender_id == u.id, Message.receiver_id == current_user.id)
-            )
-        ).order_by(desc(Message.sent_at)).first()
-        
-        unread = db.query(Message).filter(
-            Message.sender_id == u.id,
-            Message.receiver_id == current_user.id,
-            Message.is_read == False
-        ).count()
+        last_msg = last_msg_map.get(u.id)
+        unread = unread_map.get(u.id, 0)
         
         # Use a sortable timestamp — 0 epoch for no messages
         last_ts = 0
