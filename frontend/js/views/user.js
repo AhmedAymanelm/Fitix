@@ -76,13 +76,18 @@ views['u-dash'] = async () => {
               icon = '✓';
           }
           
+          let actualWeight = ex.weight || '-';
+          if (state.logged_weights && state.logged_weights[ex.id] && state.logged_weights[ex.id][i]) {
+              actualWeight = state.logged_weights[ex.id][i];
+          }
+
           setRows += `
           <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:14px; color:var(--text); ${textStyle}">
               <div style="flex:1; display:flex; justify-content:center;">
                 <span style="display:flex; align-items:center; justify-content:center; width:28px; height:28px; border:1px solid var(--border); border-radius:6px; font-weight:bold; ${bg} font-size:13px;" title="${partialInfo ? 'لم يكمل الوقت: باقي ' + partialInfo.timeLeft + ' ثانية' : ''}">${icon}</span>
               </div>
               <div style="flex:1; text-align:center;">${label}</div>
-              <div style="flex:1; text-align:center;">${ex.weight}</div>
+              <div style="flex:1; text-align:center; color:${(actualWeight !== ex.weight && actualWeight !== '-') ? 'var(--gold)' : 'inherit'}; font-weight:${(actualWeight !== ex.weight && actualWeight !== '-') ? 'bold' : 'normal'};">${actualWeight}</div>
               <div style="flex:1; text-align:center; color:var(--text-dim);">${ex.rest_seconds}s</div>
           </div>
           `;
@@ -134,7 +139,8 @@ window.submitWorkoutLog = async function(isCompleted, silent = false) {
             exercise_id: parseInt(exId),
             completed_sets: state.completed_sets[exId],
             partial_sets: state.partial_sets ? state.partial_sets[exId] || [] : [],
-            skipped_rests: state.skipped_rests ? state.skipped_rests[exId] || [] : []
+            skipped_rests: state.skipped_rests ? state.skipped_rests[exId] || [] : [],
+            logged_weights: state.logged_weights ? state.logged_weights[exId] || {} : {}
         });
     }
     
