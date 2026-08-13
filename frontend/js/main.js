@@ -5,16 +5,16 @@ function toggleLoginRole(){
   const sub = document.getElementById('loginSub');
   const u = document.getElementById('loginUser');
   if(btn.innerText.includes('ادمن')){
-    btn.innerText = '🏋️ أنا عميل';
+    btn.innerText = ' أنا عميل';
     t.innerText = 'تسجيل دخول المدرب (الادمن)';
     sub.innerText = 'ادخل لادارة الجيم الخاص بك';
-    u.value = 'admin';
+    u.value = 'اسم المستخدم';
     document.getElementById('loginIcon').innerHTML = ic.dash;
   } else {
-    btn.innerText = '🧑‍💼 أنا ادمن';
+    btn.innerText = 'أنا ادمن';
     t.innerText = 'تسجيل دخول العميل';
     sub.innerText = 'ادخل اليوزر والباسورد اللي دّهملك كابتنك';
-    u.value = 'omar.fit';
+    u.value = 'اسم الستخدم';
     document.getElementById('loginIcon').innerHTML = ic.users;
   }
 }
