@@ -44,11 +44,20 @@ class ClientProfile(Base):
     has_health_issues: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
     health_issues_details: Mapped[str | None] = mapped_column(Text, nullable=True)  # وصف المشاكل الصحية
 
-    # Body progress photos — صور التقدم
     body_photo_front: Mapped[str | None] = mapped_column(String(500), nullable=True)   # رابط صورة الوش
     body_photo_back: Mapped[str | None] = mapped_column(String(500), nullable=True)    # رابط صورة الظهر
     body_photo_side: Mapped[str | None] = mapped_column(String(500), nullable=True)    # رابط صورة الجنب
     body_photo_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # تاريخ رفع الصور
+
+    # Nutrition plan photo — صورة النظام الغذائي
+    nutrition_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)    # صورة النظام الغذائي
+    nutrition_photo_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True) # تاريخ رفع الصورة
+
+    # Admin video — فيديو من الأدمن للعميل
+    admin_video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)    # رابط الفيديو
+    admin_video_title: Mapped[str | None] = mapped_column(String(200), nullable=True)  # عنوان الفيديو
+    admin_video_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)  # تاريخ الرفع
+
 
     updated_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), onupdate=func.now())
 

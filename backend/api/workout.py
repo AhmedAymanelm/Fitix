@@ -358,3 +358,202 @@ def get_my_nutrition(current_user: User = Depends(get_current_user), db: Session
         "client_notes": plan.admin_notes or "",   # الـ admin_notes يحتوي على ملاحظات عامة
         "workout_nutrition_notes": "",             # هيتملى من الـ AI في المرة الجاية
     }
+
+
+# ─── صورة النظام الغذائي للعميل ───
+
+@router.post("/my-nutrition-photo")
+async def upload_nutrition_photo(
+    photo: "UploadFile" = None,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """يخلي العميل يرفع صورة النظام الغذائي بتاعه"""
+    from fastapi import UploadFile
+    import cloudinary
+    import cloudinary.uploader
+    from models import ClientProfile
+    from datetime import datetime as dt
+
+    cloudinary.config(
+        cloud_name='dxqpynkpk',
+        api_key='899781447338393',
+        api_secret='m_P69u4vqCBqeVxzfOtYSAqu5po'
+    )
+
+    if not photo or not photo.filename:
+        raise HTTPException(status_code=400, detail="يجب إرفاق صورة")
+
+    contents = await photo.read()
+    res = cloudinary.uploader.upload(
+        contents,
+        folder=f"nutrition_photos/{current_user.id}",
+        public_id=f"{current_user.id}_nutrition_{dt.utcnow().strftime('%Y%m%d%H%M%S')}",
+        resource_type="image"
+    )
+    url = res.get("secure_url", "")
+
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if not profile:
+        profile = ClientProfile(user_id=current_user.id)
+        db.add(profile)
+
+    profile.nutrition_photo_url = url
+    profile.nutrition_photo_date = dt.utcnow()
+    db.commit()
+
+    return {"status": "ok", "url": url}
+
+
+@router.get("/my-nutrition-photo")
+def get_nutrition_photo(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """جيب صورة النظام الغذائي للعميل الحالي"""
+    from models import ClientProfile
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if not profile or not profile.nutrition_photo_url:
+        return {"url": None, "date": None}
+    return {
+        "url": profile.nutrition_photo_url,
+        "date": profile.nutrition_photo_date.strftime("%Y-%m-%d") if profile.nutrition_photo_date else None
+    }
+
+
+@router.delete("/my-nutrition-photo")
+def delete_nutrition_photo(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """حذف صورة النظام الغذائي"""
+    from models import ClientProfile
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if profile:
+        profile.nutrition_photo_url = None
+        profile.nutrition_photo_date = None
+        db.commit()
+    return {"status": "ok"}
+
+
+@router.get("/nutrition-photo/{user_id}")
+def get_client_nutrition_photo(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """للأدمن — جيب صورة النظام الغذائي لعميل معين"""
+    from models import ClientProfile
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="غير مصرح")
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user_id).first()
+    if not profile or not profile.nutrition_photo_url:
+        return {"url": None, "date": None}
+    return {
+        "url": profile.nutrition_photo_url,
+        "date": profile.nutrition_photo_date.strftime("%Y-%m-%d") if profile.nutrition_photo_date else None
+    }
+
+
+# ─── فيديو الأدمن للعميل ───
+
+@router.post("/admin/upload-video/{user_id}")
+async def admin_upload_video(
+    user_id: int,
+    video: "UploadFile" = None,
+    title: str = "فيديو من الكابتن",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """الأدمن يرفع فيديو لعميل معين"""
+    from fastapi import UploadFile
+    import cloudinary
+    import cloudinary.uploader
+    from models import ClientProfile
+    from datetime import datetime as dt
+
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="غير مصرح")
+
+    cloudinary.config(
+        cloud_name='dxqpynkpk',
+        api_key='899781447338393',
+        api_secret='m_P69u4vqCBqeVxzfOtYSAqu5po'
+    )
+
+    if not video or not video.filename:
+        raise HTTPException(status_code=400, detail="يجب إرفاق فيديو")
+
+    contents = await video.read()
+    res = cloudinary.uploader.upload(
+        contents,
+        folder=f"admin_videos/{user_id}",
+        public_id=f"{user_id}_video_{dt.utcnow().strftime('%Y%m%d%H%M%S')}",
+        resource_type="video"
+    )
+    url = res.get("secure_url", "")
+
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user_id).first()
+    if not profile:
+        profile = ClientProfile(user_id=user_id)
+        db.add(profile)
+
+    profile.admin_video_url = url
+    profile.admin_video_title = title
+    profile.admin_video_date = dt.utcnow()
+    db.commit()
+
+    return {"status": "ok", "url": url}
+
+
+@router.get("/my-video")
+def get_my_video(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """العميل يجيب الفيديو المرسل له من الأدمن"""
+    from models import ClientProfile
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if not profile or not profile.admin_video_url:
+        return {"url": None, "title": None, "date": None}
+    return {
+        "url": profile.admin_video_url,
+        "title": profile.admin_video_title or "فيديو من الكابتن",
+        "date": profile.admin_video_date.strftime("%Y-%m-%d") if profile.admin_video_date else None
+    }
+
+
+@router.delete("/admin/delete-video/{user_id}")
+def admin_delete_video(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """الأدمن يمسح الفيديو من عند العميل"""
+    from models import ClientProfile
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="غير مصرح")
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user_id).first()
+    if profile:
+        profile.admin_video_url = None
+        profile.admin_video_title = None
+        profile.admin_video_date = None
+        db.commit()
+    return {"status": "ok"}
+
+@router.get("/admin/video/{user_id}")
+def admin_get_client_video(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """الأدمن يجيب الفيديو المرسل لعميل معين"""
+    from models import ClientProfile
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user_id).first()
+    if not profile or not profile.admin_video_url:
+        return {"url": None, "title": None, "date": None}
+    return {
+        "url": profile.admin_video_url,
+        "title": profile.admin_video_title or "فيديو من الكابتن",
+        "date": profile.admin_video_date.strftime("%Y-%m-%d") if profile.admin_video_date else None
+    }

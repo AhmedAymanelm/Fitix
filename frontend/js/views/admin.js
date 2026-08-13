@@ -200,24 +200,7 @@ views['a-dash'] = async () => {
     </div>
   </div>
 
-  <!-- Row 2: Averages -->
-  <div class="grid grid-3" style="margin-bottom:20px">
-    <div class="card" style="text-align:center; padding:20px; border-top:3px solid var(--text)">
-      <div style="font-size:12px; color:var(--text-dim); font-weight:700; margin-bottom:8px">⚖️ متوسط الوزن</div>
-      <div style="font-size:28px; font-weight:900; font-family:'Cairo'">${avg.avg_weight} <span style="font-size:14px; color:var(--text-dim)">kg</span></div>
-      <div style="font-size:11px; color:var(--text-dimmer); margin-top:4px">من ${avg.sample_size} عميل</div>
-    </div>
-    <div class="card" style="text-align:center; padding:20px; border-top:3px solid var(--coral)">
-      <div style="font-size:12px; color:var(--text-dim); font-weight:700; margin-bottom:8px">🔥 متوسط الدهون</div>
-      <div style="font-size:28px; font-weight:900; font-family:'Cairo'; color:var(--coral)">${avg.avg_fat}<span style="font-size:14px">%</span></div>
-      <div style="font-size:11px; color:var(--text-dimmer); margin-top:4px">من ${avg.sample_size} عميل</div>
-    </div>
-    <div class="card" style="text-align:center; padding:20px; border-top:3px solid var(--lime)">
-      <div style="font-size:12px; color:var(--text-dim); font-weight:700; margin-bottom:8px">💪 متوسط العضلات</div>
-      <div style="font-size:28px; font-weight:900; font-family:'Cairo'; color:var(--lime)">${avg.avg_muscle}<span style="font-size:14px">%</span></div>
-      <div style="font-size:11px; color:var(--text-dimmer); margin-top:4px">من ${avg.sample_size} عميل</div>
-    </div>
-  </div>
+
 
   <!-- Row 3: Donut Chart + Leaderboard -->
   <div class="grid grid-2" style="gap:20px; margin-bottom:20px">
@@ -608,13 +591,15 @@ views['a-client-detail'] = async () => {
   const cid = window.currentClientId;
   
   // Fetch everything in parallel to eliminate waterfall loading delays
-  const [cRes, historyRes, planRes, workRes, workHistRes, notifsRes] = await Promise.allSettled([
+  const [cRes, historyRes, planRes, workRes, workHistRes, notifsRes, nutPhotoRes, adminVideoRes] = await Promise.allSettled([
     apiFetch('/admin/clients/' + cid),
     apiFetch('/inbody/client/' + cid),
     apiFetch('/admin/clients/' + cid + '/active-plan'),
     apiFetch('/workouts/admin/client/' + cid),
     apiFetch('/workouts/history/' + cid),
-    apiFetch('/notifications/client/' + cid)
+    apiFetch('/notifications/client/' + cid),
+    apiFetch('/workouts/nutrition-photo/' + cid),
+    apiFetch('/workouts/my-video').catch(() => null)  // admin fetches via different endpoint below
   ]);
   
   const c = cRes.status === 'fulfilled' ? cRes.value : null;
@@ -625,6 +610,12 @@ views['a-client-detail'] = async () => {
   const workouts = workRes.status === 'fulfilled' ? workRes.value : [];
   const workoutsHistory = workHistRes.status === 'fulfilled' ? workHistRes.value : [];
   const clientNotifs = notifsRes.status === 'fulfilled' ? notifsRes.value : [];
+  const clientNutPhoto = (nutPhotoRes.status === 'fulfilled' && nutPhotoRes.value) ? nutPhotoRes.value : null;
+
+  // جيب بيانات الفيديو للعميل
+  let clientAdminVideo = null;
+  try { clientAdminVideo = await apiFetch('/workouts/admin/video/' + cid); } catch(e) {}
+
   
   const todayDate = new Date();
   const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -809,7 +800,21 @@ views['a-client-detail'] = async () => {
     `;
   }
   
+  // ── صورة النظام الغذائي للعميل ──
+  const nutPhotoHtml = clientNutPhoto && clientNutPhoto.url ? `
+    <div class="card" style="padding:20px; margin-bottom:20px; border:1px solid var(--primary); background:rgba(189,255,0,0.03)">
+      <h4 style="color:var(--primary); margin-bottom:10px; display:flex; align-items:center; gap:8px">📸 صورة العميل مع النظام الغذائي</h4>
+      <p style="font-size:12px; color:var(--text-dim); margin-bottom:12px">آخر تحديث: ${clientNutPhoto.date || '—'}</p>
+      <img src="${clientNutPhoto.url}"
+        style="max-width:100%; max-height:350px; border-radius:12px; object-fit:cover; border:1px solid var(--border); cursor:zoom-in"
+        onclick="openImageModal('${clientNutPhoto.url}')"
+        title="اضغط لتكبير الصورة">
+    </div>
+  ` : '';
+  nutritionHtml = nutPhotoHtml + nutritionHtml;
+
   const activeTab = window.currentClientTabId || 't1';
+
 
   return `
   <div class="page-head">
@@ -831,6 +836,7 @@ views['a-client-detail'] = async () => {
     <button class="tab-btn ${activeTab === 't2' ? 'active' : ''}" data-tab="t2" onclick="switchTab(this,'t2')">بيانات InBody</button>
     <button class="tab-btn ${activeTab === 't3' ? 'active' : ''}" data-tab="t3" onclick="switchTab(this,'t3')">التمارين</button>
     <button class="tab-btn ${activeTab === 't4' ? 'active' : ''}" data-tab="t4" onclick="switchTab(this,'t4')">النظام الغذائي</button>
+    <button class="tab-btn ${activeTab === 'tvideo' ? 'active' : ''}" style="color:var(--coral)" data-tab="tvideo" onclick="switchTab(this,'tvideo')">🎬 فيديو للعميل</button>
     <button class="tab-btn ${activeTab === 'treminder' ? 'active' : ''}" style="color:var(--cyan)" data-tab="treminder" onclick="switchTab(this,'treminder')">📅 تذكير موعد</button>
     <button class="tab-btn ${activeTab === 't6' ? 'active' : ''}" style="color:var(--cyan)" data-tab="t6" onclick="switchTab(this,'t6')">التحليلات</button>
     <button class="tab-btn ${activeTab === 't7' ? 'active' : ''}" style="color:var(--primary)" data-tab="t7" onclick="switchTab(this,'t7')">CV</button>
@@ -1039,6 +1045,42 @@ views['a-client-detail'] = async () => {
       <button class="btn btn-outline" style="padding:5px 10px; font-size:12px; color:var(--lime); border-color:var(--lime)" onclick="openManualNutritionModal(${c.id})">🛠️ إنشاء نظام يدوياً</button>
     </div>
     ${nutritionHtml}
+  </div>
+
+  <div class="tab-panel ${activeTab === 'tvideo' ? 'active' : ''}" id="tvideo">
+    <div class="section-title">🎬 فيديو للعميل <span>أرسل له فيديو يشوفه</span></div>
+
+    ${clientAdminVideo && clientAdminVideo.url ? `
+    <div class="card" style="margin-bottom:20px; border:1px solid var(--coral); background:rgba(255,107,107,0.03)">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+        <div>
+          <h4 style="color:var(--coral); margin-bottom:4px">${clientAdminVideo.title || 'فيديو من الكابتن'}</h4>
+          <div style="font-size:12px; color:var(--text-dim)">رُفع بتاريخ: ${clientAdminVideo.date || '—'}</div>
+        </div>
+        <button class="btn btn-ghost" style="color:var(--coral); border:1px solid var(--coral)" onclick="adminDeleteClientVideo(${c.id})">🗑️ حذف الفيديو</button>
+      </div>
+      <video controls style="width:100%; border-radius:12px; max-height:400px; background:#000; border:1px solid var(--border)">
+        <source src="${clientAdminVideo.url}">
+        متصفحك لا يدعم تشغيل الفيديو.
+      </video>
+    </div>
+    ` : '<div class="card" style="padding:30px; text-align:center; color:var(--text-dim); margin-bottom:20px"><div style="font-size:40px; margin-bottom:12px">🎬</div><p>لم يتم إرسال أي فيديو لهذا العميل بعد.</p></div>'}
+
+    <div class="card" style="padding:20px">
+      <h4 style="color:var(--text); margin-bottom:16px">📤 إرسال فيديو جديد</h4>
+      <div class="field" style="margin-bottom:12px">
+        <label>عنوان الفيديو (اختياري)</label>
+        <input type="text" id="adminVideoTitle" class="settings-input" style="width:100%" placeholder="مثال: تمرين البنش بريس بالشكل الصح" value="فيديو من الكابتن">
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:flex; align-items:center; gap:8px; background:var(--surface-3); border:2px dashed var(--border); border-radius:12px; padding:20px; cursor:pointer; justify-content:center; color:var(--text-dim); font-size:14px">
+          🎬 اختر فيديو (MP4, MOV, AVI...)
+          <input type="file" id="adminVideoInput" accept="video/*" style="display:none" onchange="previewAdminVideo(this)">
+        </label>
+      </div>
+      <div id="adminVideoPreview" style="margin-bottom:16px"></div>
+      <button id="adminVideoUploadBtn" onclick="uploadAdminVideo(${c.id})" style="display:none; width:100%" class="btn btn-primary">📤 إرسال الفيديو للعميل</button>
+    </div>
   </div>
 
   <div class="tab-panel ${activeTab === 't7' ? 'active' : ''}" id="t7">
@@ -3326,16 +3368,33 @@ window.buildManualNutritionModal = function() {
         <button class="btn btn-outline" style="color:var(--coral);border-color:var(--coral);padding:5px 10px;font-size:12px" onclick="window.removeManualMeal(${mIndex})">حذف الوجبة</button>
       </div>
       <div id="items-container-${mIndex}">
-        ${meal.items.map((item, iIndex) => `
-          <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center">
-            <select class="settings-input" style="flex:1" onchange="window.updateManualFood(${mIndex}, ${iIndex}, 'food_id', this.value)">
-              <option value="">اختر الصنف...</option>
-              ${window.allFoodsData.map(f => `<option value="${f.id}" ${f.id == item.food_id ? 'selected' : ''}>${f.name} (${f.calories} kcal/100g)</option>`).join('')}
-            </select>
+        ${meal.items.map((item, iIndex) => {
+          const _sel = item.food_id ? window.allFoodsData.find(f => f.id == item.food_id) : null;
+          const _val = _sel ? `${_sel.name} (${_sel.calories} kcal/100g)` : '';
+          return `
+          <div style="display:flex; gap:10px; margin-bottom:10px; align-items:flex-start">
+            <div style="flex:1">
+              <input
+                type="text"
+                class="settings-input"
+                style="width:100%"
+                placeholder="🔍 ابحث عن صنف..."
+                value="${_val}"
+                list="foodList-${mIndex}-${iIndex}"
+                oninput="(function(el,mi,ii){
+                  const q=el.value.toLowerCase();
+                  const m=window.allFoodsData.find(f=>(f.name+' ('+f.calories+' kcal/100g)').toLowerCase()===q);
+                  window.updateManualFood(mi,ii,'food_id',m?m.id:'');
+                })(this,${mIndex},${iIndex})"
+              >
+              <datalist id="foodList-${mIndex}-${iIndex}">
+                ${window.allFoodsData.map(f => `<option value="${f.name} (${f.calories} kcal/100g)"></option>`).join('')}
+              </datalist>
+            </div>
             <input type="number" class="settings-input" style="width:100px" placeholder="جرام" value="${item.grams}" onchange="window.updateManualFood(${mIndex}, ${iIndex}, 'grams', this.value)">
             <button class="btn btn-ghost" style="color:var(--coral);padding:5px" onclick="window.removeManualFood(${mIndex}, ${iIndex})">✖</button>
           </div>
-        `).join('')}
+        `}).join('')}
       </div>
       <button class="btn btn-ghost" style="font-size:12px; margin-top:5px; color:var(--lime)" onclick="window.addManualFoodItem(${mIndex})">+ إضافة صنف</button>
     </div>
@@ -3472,3 +3531,58 @@ window.showCvAnalytics = function(reps, duration) {
   `;
   document.body.appendChild(m);
 };
+
+function previewAdminVideo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  document.getElementById('adminVideoPreview').innerHTML = `
+    <video controls style="width:100%; max-height:200px; border-radius:8px; border:2px dashed var(--coral); background:#000">
+      <source src="${url}">
+    </video>
+  `;
+  document.getElementById('adminVideoUploadBtn').style.display = 'block';
+}
+
+async function uploadAdminVideo(clientId) {
+  const input = document.getElementById('adminVideoInput');
+  const titleInput = document.getElementById('adminVideoTitle');
+  if (!input.files[0]) return;
+  const btn = document.getElementById('adminVideoUploadBtn');
+  btn.disabled = true;
+  btn.innerText = 'جاري الرفع...';
+  try {
+    const fd = new FormData();
+    fd.append('video', input.files[0]);
+    
+    let url = '/workouts/admin/upload-video/' + clientId;
+    if (titleInput && titleInput.value.trim()) {
+      url += '?title=' + encodeURIComponent(titleInput.value.trim());
+    }
+
+    const token = localStorage.getItem('token');
+    const res = await fetch(API_BASE + url, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: fd
+    });
+    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'فشل الرفع'); }
+    toast('✅ تم إرسال الفيديو للعميل بنجاح');
+    window.currentClientTabId = 'tvideo';
+    setTimeout(() => goView('a-client-detail'), 800);
+  } catch(e) {
+    toast('❌ ' + e.message);
+    btn.disabled = false;
+    btn.innerText = '📤 إرسال الفيديو للعميل';
+  }
+}
+
+async function adminDeleteClientVideo(clientId) {
+  if (!(await appConfirm('هل أنت متأكد من حذف الفيديو من عند العميل؟'))) return;
+  try {
+    await apiFetch('/workouts/admin/delete-video/' + clientId, { method: 'DELETE' });
+    toast('✅ تم حذف الفيديو');
+    window.currentClientTabId = 'tvideo';
+    setTimeout(() => goView('a-client-detail'), 600);
+  } catch(e) { toast('❌ ' + e.message); }
+}
