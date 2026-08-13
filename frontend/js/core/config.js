@@ -84,16 +84,8 @@ function renderSidebar(){
   const groupLabel = mode==='admin' ? 'إدارة السيستم' : 'حسابي';
   const gs = window._gymSettings || { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
 
-  // لوجو + اسم الجيم في أعلى الـ sidebar
-  const logoHtml = gs.logo_url
-    ? `<img src="${gs.logo_url}" style="height:40px;object-fit:contain;margin-bottom:4px">`
-    : `<div style="font-size:22px;font-weight:900;color:var(--primary);letter-spacing:-1px">${gs.gym_name}</div>`;
-
-  const brandHtml = `
-    <div style="padding:16px 20px 12px;text-align:center;border-bottom:1px solid var(--border);margin-bottom:12px">
-      ${logoHtml}
-      <div style="font-size:11px;color:var(--text-dimmer);margin-top:2px">${gs.logo_url ? gs.gym_name : 'Fitness OS'}</div>
-    </div>`;
+  // لوجو + اسم الجيم في الـ topbar فقط — مش في الـ sidebar
+  const brandHtml = '';
 
   let welcomeHtml = '';
   if (firstName) {
@@ -232,15 +224,19 @@ async function loadGymSettings() {
       document.documentElement.style.setProperty('--primary', s.primary_color);
     }
 
-    // ── تحديث اسم الجيم في كل الأماكن ──
-    const appBrand = document.getElementById('appBrandName');
-    if (appBrand) appBrand.textContent = name;
-
-    const loginBrand = document.getElementById('loginBrandName');
-    if (loginBrand) loginBrand.textContent = name;
+    // ── تحديث لوجو الجيم في الـ topbar ──
+    const topbarLogo = document.getElementById('topbarLogo');
+    if (topbarLogo) {
+      if (s.logo_url) {
+        topbarLogo.src = s.logo_url;
+        topbarLogo.style.display = 'block';
+      } else {
+        topbarLogo.style.display = 'none';
+      }
+    }
 
     // تحديث عنوان الصفحة
-    document.title = name + ' — نظام إدارة الجيم';
+    document.title = (s.gym_name || 'Fitix') + ' — نظام إدارة الجيم';
 
     // إعادة رسم الـ sidebar
     renderSidebar();

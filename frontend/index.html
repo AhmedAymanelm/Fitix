@@ -7,8 +7,8 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;800;900&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=36">
-<link rel="stylesheet" href="css/responsive.css?v=36">
+<link rel="stylesheet" href="css/styles.css?v=37">
+<link rel="stylesheet" href="css/responsive.css?v=37">
 
 
 
@@ -46,7 +46,11 @@
 <!-- ============ LOGIN SCREEN ============ -->
 <div id="loginWrap">
   <div class="login-topbar">
-    <div class="brand"><span class="dot"></span><span id="loginBrandName"><span class="brand-fit">FIT</span><span class="brand-ix">IX</span></span><small>Fitness OS</small></div>
+    <div class="brand">
+      <span id="loginBrandName" class="brand-name">
+        <span class="brand-fit">FIT</span><span class="brand-ix">IX</span>
+      </span>
+    </div>
 
 
     <button class="login-role-toggle" id="roleToggleBtn" onclick="toggleLoginRole()">🧑‍💼 أنا ادمن</button>
@@ -82,7 +86,10 @@
         <span></span>
         <span></span>
       </button>
-      <span id="appBrandName"><span class="brand-fit">FIT</span><span class="brand-ix">IX</span></span><small>Fitness OS</small>
+      <span id="appBrandName" class="brand-name">
+        <img id="topbarLogo" src="" style="height:36px;object-fit:contain;border-radius:8px;display:none" alt="logo">
+        <span class="brand-fit">FIT</span><span class="brand-ix">IX</span>
+      </span>
     </div>
 
 
@@ -351,8 +358,8 @@
 
 
 
-<script src="js/views/admin.js?v=34"></script>
-<script src="js/views/user.js?v=34"></script>
+<script src="js/views/admin.js?v=37"></script>
+<script src="js/views/user.js?v=37"></script>
 <script src="js/main.js?v=29"></script>
 <script>
   function updateLiveClock() {

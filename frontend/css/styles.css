@@ -57,13 +57,13 @@ body::before{
   box-shadow:0 1px 0 rgba(74,144,226,.10);
 }
 
-.brand{display:flex; align-items:center; gap:10px; font-weight:900; font-size:20px; letter-spacing:.5px;}
-.brand .dot{width:10px; height:10px; border-radius:3px; background:var(--primary); box-shadow:0 0 14px var(--primary-glow);}
-.brand small{font-family:'Tajawal'; font-weight:500; color:var(--text-dim); font-size:12px; margin-right:6px;}
-.brand-dot{display:inline-block;}
-/* FIT white, IX red */
-.brand-fit{color:#ffffff;}
-.brand-ix{color:var(--primary);}
+.brand{display:flex; align-items:center; gap:10px;}
+.brand .dot{display:none;}
+.brand small{display:none;}
+.brand-name{display:flex; align-items:center; gap:8px; font-family:'Cairo',sans-serif; font-weight:900; font-size:22px; letter-spacing:1px; line-height:1;}
+.brand-fit{color:#a8c8f0;}
+.brand-ix{color:#e63946;}
+.brand-dot{display:none;}
 
 .sidebar-toggle{
   display:none;
