@@ -198,25 +198,72 @@ async function createClient() { /* wizard handles it */ }
    ========================================================== */
 let _notifOpen = false;
 let _lastNotifCount = 0;
+let _audioCtx = null;
+
+// Initialize audio context on first user interaction to bypass Safari/iOS restrictions
+document.addEventListener('click', () => {
+  if (!_audioCtx) {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (AudioContext) _audioCtx = new AudioContext();
+  } else if (_audioCtx.state === 'suspended') {
+    _audioCtx.resume();
+  }
+}, { once: false });
 
 function playNotifSound() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    if (!_audioCtx) return;
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    
+    const osc = _audioCtx.createOscillator();
+    const gain = _audioCtx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    osc.frequency.exponentialRampToValueAtTime(880.00, ctx.currentTime + 0.1); // A5
-    gain.gain.setValueAtTime(0, ctx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.05);
-    gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+    osc.frequency.setValueAtTime(587.33, _audioCtx.currentTime); // D5
+    osc.frequency.exponentialRampToValueAtTime(880.00, _audioCtx.currentTime + 0.1); // A5
+    gain.gain.setValueAtTime(0, _audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3, _audioCtx.currentTime + 0.05);
+    gain.gain.linearRampToValueAtTime(0, _audioCtx.currentTime + 0.3);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(_audioCtx.destination);
     osc.start();
-    osc.stop(ctx.currentTime + 0.3);
+    osc.stop(_audioCtx.currentTime + 0.3);
   } catch(e) {}
+}
+
+function showUrgentNotification(notif) {
+  // Create an elegant overlay
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);backdrop-filter:blur(5px);z-index:999999;display:flex;align-items:center;justify-content:center;opacity:0;transition:all 0.3s ease;padding:20px;';
+  
+  const box = document.createElement('div');
+  box.style.cssText = 'background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:30px;width:100%;max-width:400px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);transform:translateY(20px);transition:all 0.3s ease;';
+  
+  const icons = { appointment_reminder: '📅', subscription_expiry: '⏰', new_client: '🎉', general: '📢' };
+  const icon = icons[notif.type] || '🔔';
+  
+  box.innerHTML = `
+    <div style="font-size:48px;margin-bottom:15px;animation:pulse 2s infinite">${icon}</div>
+    <h3 style="color:var(--lime);margin-bottom:10px;font-size:22px">${notif.title}</h3>
+    <p style="color:var(--text);font-size:16px;line-height:1.5;margin-bottom:25px">${notif.message}</p>
+    <button class="btn btn-primary" style="width:100%;font-size:16px;padding:12px">علم، شكراً</button>
+  `;
+  
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+    overlay.style.opacity = '1';
+    box.style.transform = 'translateY(0)';
+  });
+  
+  // Acknowledge on click
+  box.querySelector('button').onclick = async () => {
+    overlay.style.opacity = '0';
+    box.style.transform = 'translateY(20px)';
+    setTimeout(() => overlay.remove(), 300);
+    await markNotifRead(notif.id);
+  };
 }
 
 async function loadNotifications() {
@@ -235,6 +282,12 @@ async function loadNotifications() {
         playNotifSound();
         if (data && data.length > 0) {
           showBrowserNotif(data[0].title, data[0].message);
+          
+          // If the user is a client (not admin), show the forced modal popup
+          const userRole = localStorage.getItem('role');
+          if (userRole === 'user' && !data[0].is_read) {
+            showUrgentNotification(data[0]);
+          }
         }
       }
     } else {
@@ -309,15 +362,31 @@ function startNotifPolling() {
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
+  
+  // Register Service Worker for mobile push notifications
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.error('Service Worker registration failed: ', err);
+    });
+  }
 }
 
-// Show native browser push notification
+// Show native browser push notification (Using Service Worker if available for Android/iOS)
 function showBrowserNotif(title, body) {
   if ('Notification' in window && Notification.permission === 'granted') {
-    new Notification('FORM Fitness — ' + title, {
-      body: body,
-      icon: '/favicon.ico',
-    });
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.showNotification('FORM Fitness — ' + title, {
+          body: body,
+          icon: '/favicon.ico'
+        });
+      });
+    } else {
+      new Notification('FORM Fitness — ' + title, {
+        body: body,
+        icon: '/favicon.ico',
+      });
+    }
   }
 }
 

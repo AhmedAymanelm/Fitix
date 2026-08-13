@@ -229,14 +229,4 @@ def send_appointment_reminder(data: AppointmentReminderRequest, db: Session = De
         f"نذكرك بموعدك بكره {data.appointment_date}. {data.note} 💪"
     )
 
-    # إشعار للأدمن
-    admin = db.query(User).filter(User.role == "admin").first()
-    if admin:
-        create_notification(
-            db, admin.id,
-            "appointment_reminder",
-            f"📅 موعد {client.full_name} بكره",
-            f"العميل {client.full_name} عنده موعد يوم {data.appointment_date}. {data.note}"
-        )
-
     return {"status": "ok", "message": f"تم إرسال تذكير الموعد للعميل {client.full_name}"}
