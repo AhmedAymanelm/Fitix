@@ -36,8 +36,6 @@ const userNav = [
   {id:'u-chat', label:'المحادثة مع الكابتن', icon:ic.chat},
   {id:'u-notifs', label:'إشعاراتي 🔔', icon:ic.chat},
   {id:'u-cv', label:'اختبار اللياقة (كاميرا)', icon:ic.cam},
-  {id:'u-inbody', label:'بياناتي (InBody)', icon:ic.upload},
-  {id:'u-aichat', label:'مساعد AI', icon:ic2.aichat},
   {id:'u-analytics', label:'تقدمي', icon:ic2.analytics},
   {id:'u-settings', label:'إعداداتي', icon:ic2.settings},
 ];
