@@ -2356,7 +2356,8 @@ views['a-analytics'] = async () => {
 /* ---- Admin Settings ---- */
 views['a-settings'] = () => {
   const gs = window._gymSettings || { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
-  setTimeout(() => { loadNotifSettings(); }, 100);
+  setTimeout(() => { loadNotifSettings(); loadAiSettings(); }, 100);
+
   return `
   <div class="page-head"><h1>الإعدادات</h1><p>تحكم في إعدادات النظام والإشعارات والهوية البصرية</p></div>
 
@@ -2408,6 +2409,19 @@ views['a-settings'] = () => {
     <button class="btn btn-primary" onclick="saveGymBranding()">💾 حفظ هوية الجيم</button>
   </div>
 
+  <!-- AI Settings -->
+  <div class="notif-settings-card" style="margin-bottom:20px; border-left:4px solid var(--primary)">
+    <h4>🤖 إعدادات الذكاء الاصطناعي (Gemini AI)</h4>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">ضيف مفتاح الـ API الخاص بيك هنا عشان تستخدم ميزات توليد الأنظمة الغذائية وقراءة الـ InBody.</p>
+    
+    <div class="notif-settings-row" style="margin-bottom:12px; display:block">
+      <label style="display:block; margin-bottom:8px">🔑 Gemini API Key</label>
+      <input type="password" id="geminiApiKeyInput" class="settings-input" placeholder="AIzaSy..." style="width:100%; margin:0; font-family:monospace">
+      <div id="apiKeyStatus" style="font-size:12px; margin-top:8px; color:var(--text-dim)">جاري التحميل...</div>
+    </div>
+    <button class="btn btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 حفظ مفتاح الـ API</button>
+  </div>
+
   <!-- Notification Settings -->
   <div class="notif-settings-card" style="margin-bottom:20px">
     <h4>🔔 إعدادات الإشعارات التلقائية</h4>
@@ -2441,6 +2455,48 @@ views['a-settings'] = () => {
     </div>
   </div>
 `};
+
+async function loadAiSettings() {
+  try {
+    const res = await apiFetch('/gym-settings/api-key');
+    const input = document.getElementById('geminiApiKeyInput');
+    const status = document.getElementById('apiKeyStatus');
+    if(input && status) {
+      if(res.has_key) {
+        input.placeholder = "مفتاح محفوظ: " + (res.api_key || "***");
+        status.innerHTML = `<span style="color:var(--lime)">✅ المفتاح مفعل حالياً في النظام</span>`;
+      } else {
+        input.placeholder = "لم يتم إضافة أي مفتاح بعد";
+        status.innerHTML = `<span style="color:var(--gold)">⚠️ ميزات الـ AI مش هتشتغل لحد ما تضيف المفتاح</span>`;
+      }
+    }
+  } catch(e) {
+    console.error("Failed to load AI settings:", e);
+  }
+}
+
+async function saveAiSettings() {
+  const key = document.getElementById('geminiApiKeyInput').value.trim();
+  if(!key) {
+    toast('يرجى إدخال مفتاح صالح!');
+    return;
+  }
+  const btn = document.getElementById('saveAiBtn');
+  btn.innerText = 'جاري الحفظ...';
+  try {
+    await apiFetch('/gym-settings/api-key', {
+      method: 'POST',
+      body: JSON.stringify({ api_key: key })
+    });
+    toast('✅ تم حفظ مفتاح الـ API وتفعيله بنجاح');
+    document.getElementById('geminiApiKeyInput').value = '';
+    loadAiSettings();
+  } catch(e) {
+    toast('❌ ' + e.message);
+  } finally {
+    btn.innerText = '💾 حفظ مفتاح الـ API';
+  }
+}
 
 async function saveGymBranding() {
   const name = document.getElementById('gymNameInput').value.trim();

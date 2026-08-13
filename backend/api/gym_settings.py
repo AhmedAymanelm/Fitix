@@ -88,3 +88,43 @@ async def upload_logo(file: UploadFile = File(...), db: Session = Depends(get_db
     db.commit()
 
     return {"status": "ok", "logo_url": logo_url}
+
+class ApiKeyUpdate(BaseModel):
+    api_key: str
+
+@router.get("/api-key", dependencies=[Depends(get_current_admin)])
+def get_api_key():
+    key = os.getenv("GEMINI_API_KEY", "")
+    if key and len(key) > 8:
+        masked = key[:6] + "•" * 15 + key[-4:]
+    else:
+        masked = ""
+    return {"api_key": masked, "has_key": bool(key)}
+
+@router.post("/api-key", dependencies=[Depends(get_current_admin)])
+def update_api_key(payload: ApiKeyUpdate):
+    import re
+    new_key = payload.api_key.strip()
+    os.environ["GEMINI_API_KEY"] = new_key
+    
+    # Update .env file
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".env")
+    
+    if os.path.exists(env_path):
+        with open(env_path, "r") as f:
+            content = f.read()
+        
+        if "GEMINI_API_KEY=" in content:
+            content = re.sub(r'GEMINI_API_KEY=.*', f'GEMINI_API_KEY={new_key}', content)
+        else:
+            if content and not content.endswith('\n'):
+                content += '\n'
+            content += f"GEMINI_API_KEY={new_key}\n"
+            
+        with open(env_path, "w") as f:
+            f.write(content)
+    else:
+        with open(env_path, "w") as f:
+            f.write(f"GEMINI_API_KEY={new_key}\n")
+            
+    return {"status": "ok"}
