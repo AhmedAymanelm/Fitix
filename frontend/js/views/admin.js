@@ -3449,7 +3449,7 @@ window.showCvAnalytics = function(reps, duration) {
         <div style="height:100px; display:flex; align-items:flex-end; gap:5px; padding:10px 0; border-bottom:1px solid var(--border); margin-bottom:10px;">
           ${Array(10).fill(0).map((_, i) => {
             const h = Math.random() * 80 + 20;
-            return \`<div style="flex:1; background:var(--primary); height:${h}%; border-radius:4px 4px 0 0; opacity:${0.3 + (i/15)}"></div>\`;
+            return `<div style="flex:1; background:var(--primary); height:${h}%; border-radius:4px 4px 0 0; opacity:${0.3 + (i/15)}"></div>`;
           }).join('')}
         </div>
         <div style="font-size:11px; color:var(--text-dim); margin-bottom:20px;">سرعة الأداء خلال التمرين</div>
