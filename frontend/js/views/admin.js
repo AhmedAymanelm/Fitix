@@ -593,7 +593,17 @@ views['a-clients'] = async () => {
 
 /* ---- Admin Client Detail (tabs) ---- */
 views['a-client-detail'] = async () => {
-  if (!window.currentClientId) return `<div class="page-head"><h1>خطأ</h1><p>مفيش عميل محدد</p></div>`;
+  if (!window.currentClientId) {
+    const savedId = sessionStorage.getItem('currentClientId');
+    if (savedId) {
+      window.currentClientId = savedId;
+    } else {
+      setTimeout(() => goView('a-clients'), 0);
+      return `<div class="page-head"><h1>جاري التحميل...</h1></div>`;
+    }
+  } else {
+    sessionStorage.setItem('currentClientId', window.currentClientId);
+  }
   
   const cid = window.currentClientId;
   
