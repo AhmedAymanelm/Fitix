@@ -2938,7 +2938,7 @@ window.submitManualNutrition = async function(event) {
     });
     alert(res.message);
     document.getElementById('manualNutritionModal').style.display = 'none';
-    showClientProfile(window.currentManualClientId); 
+    goView('a-client-detail'); 
   } catch(e) {
     alert(e.message);
   } finally {
