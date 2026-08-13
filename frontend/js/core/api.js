@@ -53,6 +53,8 @@ function openSidebar() {
       box-shadow: -6px 0 40px rgba(0,0,0,0.95) !important;
       padding-top: 64px !important;
       overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      overscroll-behavior: contain !important;
       flex-direction: column !important;
       gap: 4px !important;
       transform: none !important;
@@ -70,6 +72,7 @@ function openSidebar() {
         background: rgba(0,0,0,0.7) !important;
         opacity: 1 !important;
         pointer-events: auto !important;
+        touch-action: none !important;
       `;
     }
   }
