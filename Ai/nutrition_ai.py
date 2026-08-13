@@ -3,7 +3,7 @@ import json
 from typing import List
 
 from Ai.prompts.nutrition_prompt import get_nutrition_prompt
-from Ai.mocks.nutrition_mock import get_mock_nutrition_plan
+
 
 # Check if google-generativeai is available
 try:
@@ -23,7 +23,7 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
     print(f"[AI] google-generativeai available: {GENAI_AVAILABLE}")
 
     if not api_key or not GENAI_AVAILABLE:
-        return get_mock_nutrition_plan(client_data)
+        raise ValueError("تكامل الذكاء الاصطناعي غير متوفر. تأكد من إعداد GEMINI_API_KEY و google-generativeai.")
 
     # Build the food catalog string
     food_catalog = "\n".join([
