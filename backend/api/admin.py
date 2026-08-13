@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func
 import cloudinary
 import cloudinary.uploader
@@ -351,7 +351,9 @@ class CategoryExerciseAdd(BaseModel):
 
 @router.get("/exercise-categories")
 def get_exercise_categories(db: Session = Depends(get_db)):
-    cats = db.query(ExerciseCategory).order_by(ExerciseCategory.sort_order, ExerciseCategory.id).all()
+    cats = db.query(ExerciseCategory).options(
+        joinedload(ExerciseCategory.items).joinedload(CategoryExercise.exercise)
+    ).order_by(ExerciseCategory.sort_order, ExerciseCategory.id).all()
     result = []
     for cat in cats:
         exercises = []
