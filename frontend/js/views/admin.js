@@ -1208,13 +1208,13 @@ function renderLibraryPage() {
   </div>
 
   <!-- ══ Category Modal ══ -->
-  <div class="modal-overlay" id="categoryModal">
-    <div class="modal-box" style="max-width:420px;">
-      <div class="modal-head">
-        <h3 id="categoryModalTitle">قسم جديد</h3>
+  <div class="modal-bg" id="categoryModal">
+    <div class="modal" style="max-width:420px; padding:0; overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface-2);">
+        <h3 id="categoryModalTitle" style="margin:0;font-size:16px;">قسم جديد</h3>
         <button class="btn btn-icon" onclick="closeCategoryModal()">✕</button>
       </div>
-      <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+      <div style="padding:20px;display:flex;flex-direction:column;gap:16px;">
         <div style="display:flex;gap:12px;align-items:flex-end;">
           <div style="flex:0 0 72px;">
             <label class="settings-label">أيقونة</label>
@@ -1229,7 +1229,7 @@ function renderLibraryPage() {
           <label class="settings-label">وصف (اختياري)</label>
           <textarea id="catDesc" class="settings-input" rows="2" placeholder="وصف مختصر للقسم..."></textarea>
         </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;">
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:10px;">
           <button class="btn btn-ghost" onclick="closeCategoryModal()">إلغاء</button>
           <button class="btn btn-primary" onclick="saveCategoryModal()">حفظ القسم</button>
         </div>
@@ -1238,11 +1238,11 @@ function renderLibraryPage() {
   </div>
 
   <!-- ══ Pick Exercise Modal ══ -->
-  <div class="modal-overlay" id="addExToCatModal">
-    <div class="modal-box" style="max-width:680px;max-height:90vh;display:flex;flex-direction:column;">
-      <div class="modal-head" style="flex-shrink:0;">
+  <div class="modal-bg" id="addExToCatModal">
+    <div class="modal" style="max-width:680px; width:95%; max-height:90vh; padding:0; display:flex; flex-direction:column; overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);background:var(--surface-2);flex-shrink:0;">
         <div>
-          <h3>اختر تمرين</h3>
+          <h3 style="margin:0;font-size:16px;">اختر تمرين</h3>
           <p style="font-size:12px;color:var(--text-dim);margin-top:2px;" id="pickCatLabel"></p>
         </div>
         <button class="btn btn-icon" onclick="closeAddExToCatModal()">✕</button>
