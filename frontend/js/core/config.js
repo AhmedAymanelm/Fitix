@@ -84,20 +84,16 @@ function renderSidebar(){
   const groupLabel = mode==='admin' ? 'إدارة السيستم' : 'حسابي';
   const gs = window._gymSettings || { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
 
-  // لوجو + اسم الجيم في الـ topbar فقط — مش في الـ sidebar
-  const brandHtml = '';
-
-  let welcomeHtml = '';
-  if (firstName) {
-    welcomeHtml = `<div style="padding:6px 20px 14px;text-align:center">
-      <span style="font-size:14px;color:var(--text-dim)">أهلاً يا <b style="color:var(--primary)">${firstName}</b> 👋</span>
-    </div>`;
-  }
+  // الـ logo في الـ sidebar (كبيرة، في المنتصف) — بدل الترحيب
+  const sidebarLogoHtml = gs.logo_url
+    ? `<div style="padding:20px 16px 16px; text-align:center; border-bottom:1px solid var(--border); margin-bottom:8px;">
+        <img src="${gs.logo_url}" style="width:100px;height:100px;object-fit:contain;border-radius:16px;display:block;margin:0 auto;">
+       </div>`
+    : '';
 
   const sidebarEl = document.getElementById('sidebar');
   sidebarEl.innerHTML = `
-    ${brandHtml}
-    ${welcomeHtml}
+    ${sidebarLogoHtml}
     <div class="side-title">${groupLabel}</div>
     ${nav.map(n=>`
       <div class="nav-item ${n.id===currentView?'active':''}" data-nav="${n.id}" style="touch-action:manipulation;cursor:pointer;">

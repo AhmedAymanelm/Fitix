@@ -171,7 +171,10 @@ views['a-dash'] = async () => {
   }
 
   return `
-  <div class="page-head"><h1>أهلاً كابتن 👋</h1><p>نظرة سريعة على متابعيك النهاردة</p></div>
+  <div style="text-align:center; padding:32px 0 24px; margin-bottom:8px;">
+    <h1 style="font-size:36px; font-weight:900; margin-bottom:6px;">أهلاً كابتن 👋</h1>
+    <p style="color:var(--text-dim); font-size:15px;">نظرة سريعة على متابعيك النهاردة</p>
+  </div>
   
   <!-- Row 1: Main Stats -->
   <div class="grid grid-4">
