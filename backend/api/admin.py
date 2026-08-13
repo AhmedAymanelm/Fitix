@@ -17,6 +17,7 @@ from config.database import get_db
 from models.user import User
 from models.client_profile import ClientProfile
 from models.exercise import Exercise
+from models.exercise_category import ExerciseCategory, CategoryExercise
 from models.nutrition import FoodItem, NutritionPlan, Meal
 from models.notification import Notification
 from api.deps import get_current_admin, hash_password
@@ -330,6 +331,96 @@ def delete_exercise(ex_id: int, db: Session = Depends(get_db)):
     if not ex:
         raise HTTPException(status_code=404, detail="Exercise not found")
     db.delete(ex)
+    db.commit()
+    return {"status": "ok"}
+
+# ─── Exercise Categories (Sections) ───────────────────────────────────────────
+
+class CategoryCreate(BaseModel):
+    name: str
+    description: str | None = None
+    icon: str | None = None
+    sort_order: int = 0
+
+class CategoryExerciseAdd(BaseModel):
+    exercise_id: int
+    sets: int | None = None
+    reps: str | None = None
+    notes: str | None = None
+    sort_order: int = 0
+
+@router.get("/exercise-categories")
+def get_exercise_categories(db: Session = Depends(get_db)):
+    cats = db.query(ExerciseCategory).order_by(ExerciseCategory.sort_order, ExerciseCategory.id).all()
+    result = []
+    for cat in cats:
+        exercises = []
+        for item in cat.items:
+            ex = item.exercise
+            exercises.append({
+                "cat_exercise_id": item.id,
+                "exercise_id": ex.id,
+                "name": ex.name,
+                "muscle_group": ex.muscle_group,
+                "difficulty": ex.difficulty,
+                "gif_url": ex.gif_url,
+                "video_url": ex.video_url,
+                "sets": item.sets,
+                "reps": item.reps,
+                "notes": item.notes,
+            })
+        result.append({
+            "id": cat.id,
+            "name": cat.name,
+            "description": cat.description,
+            "icon": cat.icon,
+            "exercises": exercises,
+        })
+    return result
+
+@router.post("/exercise-categories")
+def create_exercise_category(data: CategoryCreate, db: Session = Depends(get_db)):
+    cat = ExerciseCategory(name=data.name, description=data.description, icon=data.icon, sort_order=data.sort_order)
+    db.add(cat)
+    db.commit()
+    db.refresh(cat)
+    return {"id": cat.id, "name": cat.name}
+
+@router.put("/exercise-categories/{cat_id}")
+def update_exercise_category(cat_id: int, data: CategoryCreate, db: Session = Depends(get_db)):
+    cat = db.query(ExerciseCategory).filter(ExerciseCategory.id == cat_id).first()
+    if not cat: raise HTTPException(status_code=404, detail="Not found")
+    cat.name = data.name; cat.description = data.description; cat.icon = data.icon
+    db.commit()
+    return {"status": "ok"}
+
+@router.delete("/exercise-categories/{cat_id}")
+def delete_exercise_category(cat_id: int, db: Session = Depends(get_db)):
+    cat = db.query(ExerciseCategory).filter(ExerciseCategory.id == cat_id).first()
+    if not cat: raise HTTPException(status_code=404, detail="Not found")
+    db.delete(cat)
+    db.commit()
+    return {"status": "ok"}
+
+@router.post("/exercise-categories/{cat_id}/exercises")
+def add_exercise_to_category(cat_id: int, data: CategoryExerciseAdd, db: Session = Depends(get_db)):
+    cat = db.query(ExerciseCategory).filter(ExerciseCategory.id == cat_id).first()
+    if not cat: raise HTTPException(status_code=404, detail="Category not found")
+    ex = db.query(Exercise).filter(Exercise.id == data.exercise_id).first()
+    if not ex: raise HTTPException(status_code=404, detail="Exercise not found")
+    item = CategoryExercise(category_id=cat_id, exercise_id=data.exercise_id,
+                            sets=data.sets, reps=data.reps, notes=data.notes)
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return {"id": item.id, "status": "ok"}
+
+@router.delete("/exercise-categories/{cat_id}/exercises/{item_id}")
+def remove_exercise_from_category(cat_id: int, item_id: int, db: Session = Depends(get_db)):
+    item = db.query(CategoryExercise).filter(
+        CategoryExercise.id == item_id, CategoryExercise.category_id == cat_id).first()
+    if not item: raise HTTPException(status_code=404, detail="Not found")
+    db.delete(item)
     db.commit()
     return {"status": "ok"}
 

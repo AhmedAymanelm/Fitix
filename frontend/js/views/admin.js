@@ -1162,29 +1162,323 @@ function switchTab(btn, id){
 }
 
 let adminExercisesCache = [];
+let adminCategoriesCache = [];
 let currentAdminExLimit = 50;
 
-/* ---- Admin Exercise Library ---- */
+/* ---- Admin Exercise Library (Sections Mode) ---- */
 views['a-library'] = async () => {
-  currentAdminExLimit = 50;
-  adminExercisesCache = await apiFetch('/admin/exercises');
+  [adminExercisesCache, adminCategoriesCache] = await Promise.all([
+    apiFetch('/admin/exercises'),
+    apiFetch('/admin/exercise-categories'),
+  ]);
+  return renderLibraryPage();
+};
+
+function renderLibraryPage() {
+  const cats = adminCategoriesCache;
+  const catsHtml = cats.length === 0
+    ? `<div style="text-align:center;padding:60px 20px;color:var(--text-dim);">
+        <div style="font-size:48px;margin-bottom:16px;">📂</div>
+        <h3 style="margin-bottom:8px;">لا يوجد أقسام بعد</h3>
+        <p style="margin-bottom:20px;">ابدأ بإضافة قسم جديد (مثل: صدر، ظهر، أرجل)</p>
+        <button class="btn btn-primary" onclick="openAddCategoryModal()">+ إضافة أول قسم</button>
+      </div>`
+    : cats.map(cat => renderCategoryCard(cat)).join('');
+
   return `
-  <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:15px;">
-    <div><h1>مكتبة التمارين</h1><p id="exCountLbl">التمارين المتوفرة في قاعدة البيانات (${adminExercisesCache.length})</p></div>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <input type="text" id="exSearch" placeholder="بحث عن تمرين..." class="settings-input" style="width:250px" onkeyup="filterAdminExercises(this.value)">
-      <button class="btn btn-primary" onclick="openUploadExerciseModal()">+ رفع تمرين جديد</button>
+  <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:15px;margin-bottom:24px;">
+    <div>
+      <h1>مكتبة التمارين</h1>
+      <p style="color:var(--text-dim)">${cats.length} قسم · ${adminExercisesCache.length} تمرين في قاعدة البيانات</p>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-ghost" style="border:1px solid var(--border)" onclick="openUploadExerciseModal()">📤 رفع تمرين جديد</button>
+      <button class="btn btn-primary" onclick="openAddCategoryModal()">+ إضافة قسم</button>
     </div>
   </div>
-  <div class="grid grid-4" id="exGrid">
-    ${renderAdminExercises(adminExercisesCache)}
+  <div id="categoriesContainer">
+    ${catsHtml}
+  </div>
+
+  <!-- Add/Edit Category Modal -->
+  <div class="modal-overlay" id="categoryModal">
+    <div class="modal-box" style="max-width:440px;">
+      <div class="modal-head">
+        <h3 id="categoryModalTitle">إضافة قسم جديد</h3>
+        <button class="btn btn-icon" onclick="closeCategoryModal()">✕</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label class="settings-label">اسم القسم *</label>
+          <input id="catName" class="settings-input" placeholder="مثال: تمارين الصدر">
+        </div>
+        <div>
+          <label class="settings-label">أيقونة (إيموجي اختياري)</label>
+          <input id="catIcon" class="settings-input" placeholder="مثال: 💪" maxlength="4" style="width:80px">
+        </div>
+        <div>
+          <label class="settings-label">وصف اختياري</label>
+          <textarea id="catDesc" class="settings-input" rows="2" placeholder="وصف القسم..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn btn-ghost" onclick="closeCategoryModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="saveCategoryModal()">حفظ القسم</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Exercise to Category Modal -->
+  <div class="modal-overlay" id="addExToCatModal">
+    <div class="modal-box" style="max-width:560px;">
+      <div class="modal-head">
+        <h3>إضافة تمرين للقسم</h3>
+        <button class="btn btn-icon" onclick="closeAddExToCatModal()">✕</button>
+      </div>
+      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
+        <input id="exSearchInModal" class="settings-input" placeholder="بحث عن تمرين..." oninput="filterExInModal(this.value)">
+        <div id="exListInModal" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;gap:10px;">
+            <div style="flex:1">
+              <label class="settings-label">السيتات</label>
+              <input id="exSets" class="settings-input" type="number" placeholder="مثال: 4" min="1" max="20">
+            </div>
+            <div style="flex:1">
+              <label class="settings-label">التكرارات</label>
+              <input id="exReps" class="settings-input" placeholder="مثال: 8-12">
+            </div>
+          </div>
+          <div>
+            <label class="settings-label">ملاحظة اختيارية</label>
+            <input id="exNote" class="settings-input" placeholder="مثال: ركز على الشد">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;">
+          <button class="btn btn-ghost" onclick="closeAddExToCatModal()">إلغاء</button>
+          <button class="btn btn-primary" onclick="confirmAddExToCategory()">إضافة التمرين</button>
+        </div>
+      </div>
+    </div>
   </div>
   `;
 }
 
+function renderCategoryCard(cat) {
+  const exRows = cat.exercises.length === 0
+    ? `<div style="text-align:center;padding:20px;color:var(--text-dimmer);font-size:13px;">لا يوجد تمارين في هذا القسم بعد</div>`
+    : cat.exercises.map(ex => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-radius:10px;border:1px solid var(--border);">
+        ${ex.gif_url || ex.video_url
+          ? `<img src="${ex.gif_url || ex.video_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">`
+          : `<div style="width:48px;height:48px;border-radius:8px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🏋️</div>`}
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:14px;">${ex.name}</div>
+          <div style="font-size:12px;color:var(--text-dim);">${ex.muscle_group}${ex.sets ? ` · ${ex.sets} سيت` : ''}${ex.reps ? ` × ${ex.reps}` : ''}${ex.notes ? ` · ${ex.notes}` : ''}</div>
+        </div>
+        <button class="btn btn-icon" style="color:var(--coral);background:rgba(230,57,70,.1);" onclick="removeExFromCategory(${cat.id}, ${ex.cat_exercise_id})" title="إزالة">✕</button>
+      </div>`).join('');
+
+  return `
+  <div class="card" style="margin-bottom:20px;" id="cat-${cat.id}">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:28px;">${cat.icon || '📌'}</span>
+        <div>
+          <h3 style="font-size:18px;font-weight:800;">${cat.name}</h3>
+          ${cat.description ? `<p style="font-size:12px;color:var(--text-dim);margin-top:2px;">${cat.description}</p>` : ''}
+        </div>
+        <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--text-dim);">${cat.exercises.length} تمرين</span>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost btn-sm" style="border:1px solid var(--border)" onclick="openEditCategoryModal(${cat.id})">✏️ تعديل</button>
+        <button class="btn btn-ghost btn-sm" style="border:1px solid var(--border);color:var(--coral)" onclick="deleteCategoryConfirm(${cat.id})">🗑️ حذف</button>
+        <button class="btn btn-primary btn-sm" onclick="openAddExToCatModal(${cat.id})">+ إضافة تمرين</button>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;" id="exList-${cat.id}">
+      ${exRows}
+    </div>
+  </div>`;
+}
+
+// ── Category Modal Logic ──────────────────────────────────────
+let _editingCatId = null;
+function openAddCategoryModal() {
+  _editingCatId = null;
+  document.getElementById('categoryModalTitle').innerText = 'إضافة قسم جديد';
+  document.getElementById('catName').value = '';
+  document.getElementById('catIcon').value = '';
+  document.getElementById('catDesc').value = '';
+  document.getElementById('categoryModal').classList.add('show');
+}
+function openEditCategoryModal(catId) {
+  const cat = adminCategoriesCache.find(c => c.id === catId);
+  if (!cat) return;
+  _editingCatId = catId;
+  document.getElementById('categoryModalTitle').innerText = 'تعديل القسم';
+  document.getElementById('catName').value = cat.name;
+  document.getElementById('catIcon').value = cat.icon || '';
+  document.getElementById('catDesc').value = cat.description || '';
+  document.getElementById('categoryModal').classList.add('show');
+}
+function closeCategoryModal() {
+  document.getElementById('categoryModal').classList.remove('show');
+}
+async function saveCategoryModal() {
+  const name = document.getElementById('catName').value.trim();
+  if (!name) return toast('يرجى كتابة اسم القسم!');
+  const data = {
+    name,
+    icon: document.getElementById('catIcon').value.trim() || null,
+    description: document.getElementById('catDesc').value.trim() || null,
+  };
+  try {
+    if (_editingCatId) {
+      await apiFetch('/admin/exercise-categories/' + _editingCatId, { method: 'PUT', body: JSON.stringify(data) });
+      toast('✅ تم تعديل القسم');
+    } else {
+      await apiFetch('/admin/exercise-categories', { method: 'POST', body: JSON.stringify(data) });
+      toast('✅ تم إضافة القسم');
+    }
+    closeCategoryModal();
+    adminCategoriesCache = await apiFetch('/admin/exercise-categories');
+    document.getElementById('categoriesContainer').innerHTML =
+      adminCategoriesCache.length === 0
+        ? `<div style="text-align:center;padding:60px;color:var(--text-dim);">لا يوجد أقسام — اضغط "+ إضافة قسم"</div>`
+        : adminCategoriesCache.map(renderCategoryCard).join('');
+  } catch(e) { toast('❌ ' + e.message); }
+}
+async function deleteCategoryConfirm(catId) {
+  const cat = adminCategoriesCache.find(c => c.id === catId);
+  showConfirm(`هل تريد حذف قسم "${cat?.name}" وكل تمارينه؟`, async () => {
+    try {
+      await apiFetch('/admin/exercise-categories/' + catId, { method: 'DELETE' });
+      toast('✅ تم حذف القسم');
+      adminCategoriesCache = adminCategoriesCache.filter(c => c.id !== catId);
+      const el = document.getElementById('cat-' + catId);
+      if (el) el.remove();
+    } catch(e) { toast('❌ ' + e.message); }
+  });
+}
+
+// ── Add Exercise to Category Modal ─────────────────────────────
+let _targetCatId = null;
+let _selectedExId = null;
+function openAddExToCatModal(catId) {
+  _targetCatId = catId;
+  _selectedExId = null;
+  document.getElementById('exSearchInModal').value = '';
+  document.getElementById('exSets').value = '';
+  document.getElementById('exReps').value = '';
+  document.getElementById('exNote').value = '';
+  renderExListInModal(adminExercisesCache);
+  document.getElementById('addExToCatModal').classList.add('show');
+}
+function closeAddExToCatModal() {
+  document.getElementById('addExToCatModal').classList.remove('show');
+  _targetCatId = null; _selectedExId = null;
+}
+function renderExListInModal(exercises) {
+  const container = document.getElementById('exListInModal');
+  if (!container) return;
+  container.innerHTML = exercises.slice(0, 60).map(ex => `
+    <div id="exOpt-${ex.id}" onclick="selectExInModal(${ex.id})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:2px solid var(--border);cursor:pointer;transition:.15s;background:var(--surface);">
+      <div style="flex:1;">
+        <div style="font-weight:700;font-size:14px;">${ex.name}</div>
+        <div style="font-size:11px;color:var(--text-dim);">${ex.muscle_group} · ${ex.difficulty || 'عام'}</div>
+      </div>
+    </div>`).join('');
+}
+function filterExInModal(query) {
+  const q = query.toLowerCase();
+  const filtered = adminExercisesCache.filter(ex =>
+    ex.name.toLowerCase().includes(q) || ex.muscle_group.toLowerCase().includes(q));
+  renderExListInModal(filtered);
+}
+function selectExInModal(exId) {
+  _selectedExId = exId;
+  document.querySelectorAll('[id^="exOpt-"]').forEach(el => {
+    el.style.borderColor = 'var(--border)';
+    el.style.background = 'var(--surface)';
+  });
+  const el = document.getElementById('exOpt-' + exId);
+  if (el) { el.style.borderColor = 'var(--accent)'; el.style.background = 'rgba(74,144,226,.1)'; }
+}
+async function confirmAddExToCategory() {
+  if (!_selectedExId) return toast('اختار تمرين الأول!');
+  const data = {
+    exercise_id: _selectedExId,
+    sets: parseInt(document.getElementById('exSets').value) || null,
+    reps: document.getElementById('exReps').value.trim() || null,
+    notes: document.getElementById('exNote').value.trim() || null,
+  };
+  try {
+    await apiFetch('/admin/exercise-categories/' + _targetCatId + '/exercises', { method: 'POST', body: JSON.stringify(data) });
+    toast('✅ تم إضافة التمرين');
+    closeAddExToCatModal();
+    // refresh categories
+    adminCategoriesCache = await apiFetch('/admin/exercise-categories');
+    const cat = adminCategoriesCache.find(c => c.id === _targetCatId);
+    if (cat) {
+      const el = document.getElementById('cat-' + _targetCatId);
+      if (el) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = renderCategoryCard(cat);
+        el.replaceWith(tmp.firstElementChild);
+      }
+    }
+  } catch(e) { toast('❌ ' + e.message); }
+}
+async function removeExFromCategory(catId, itemId) {
+  try {
+    await apiFetch('/admin/exercise-categories/' + catId + '/exercises/' + itemId, { method: 'DELETE' });
+    toast('✅ تمت الإزالة');
+    adminCategoriesCache = await apiFetch('/admin/exercise-categories');
+    const cat = adminCategoriesCache.find(c => c.id === catId);
+    if (cat) {
+      const el = document.getElementById('cat-' + catId);
+      if (el) {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = renderCategoryCard(cat);
+        el.replaceWith(tmp.firstElementChild);
+      }
+    }
+  } catch(e) { toast('❌ ' + e.message); }
+}
+window.openAddCategoryModal = openAddCategoryModal;
+window.closeCategoryModal = closeCategoryModal;
+window.saveCategoryModal = saveCategoryModal;
+window.openEditCategoryModal = openEditCategoryModal;
+window.deleteCategoryConfirm = deleteCategoryConfirm;
+window.openAddExToCatModal = openAddExToCatModal;
+window.closeAddExToCatModal = closeAddExToCatModal;
+window.selectExInModal = selectExInModal;
+window.filterExInModal = filterExInModal;
+window.confirmAddExToCategory = confirmAddExToCategory;
+window.removeExFromCategory = removeExFromCategory;
+
+function filterAdminExercises(query, resetLimit=true) {
+    if(resetLimit) currentAdminExLimit = 50;
+    query = query.toLowerCase();
+    const filtered = adminExercisesCache.filter(ex =>
+        ex.name.toLowerCase().includes(query) ||
+        ex.muscle_group.toLowerCase().includes(query)
+    );
+    const grid = document.getElementById('exGrid');
+    if (grid) grid.innerHTML = renderAdminExercises(filtered);
+    const lbl = document.getElementById('exCountLbl');
+    if (lbl) lbl.innerText = `التمارين المتوفرة في قاعدة البيانات (${filtered.length})`;
+}
+
+function loadMoreAdminExercises() {
+    currentAdminExLimit += 50;
+    const query = document.getElementById('exSearch') ? document.getElementById('exSearch').value : '';
+    filterAdminExercises(query, false);
+}
+
 function renderAdminExercises(exercises) {
-    if (exercises.length === 0) return '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-dim)">مفيش تمارين مطابقة للبحث</div>';
-    
+    if (exercises.length === 0) return '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-dim)">مفيش تمارين مطابقة</div>';
     const visibleExercises = exercises.slice(0, currentAdminExLimit);
     let html = visibleExercises.map(ex=>{
       const imgUrl = ex.video_url || ex.gif_url;
@@ -1202,29 +1496,10 @@ function renderAdminExercises(exercises) {
         </div>
       </div>`
     }).join('');
-
     if (exercises.length > currentAdminExLimit) {
-        html += `<div style="grid-column:1/-1;text-align:center;padding:20px;margin-top:10px;"><button class="btn btn-ghost" style="border:1px solid var(--border);" onclick="loadMoreAdminExercises()">عرض المزيد... (${exercises.length - currentAdminExLimit} تمرين متبقي)</button></div>`;
+        html += `<div style="grid-column:1/-1;text-align:center;padding:20px;"><button class="btn btn-ghost" style="border:1px solid var(--border);" onclick="loadMoreAdminExercises()">عرض المزيد... (${exercises.length - currentAdminExLimit} تمرين)</button></div>`;
     }
-    
     return html;
-}
-
-function filterAdminExercises(query, resetLimit=true) {
-    if(resetLimit) currentAdminExLimit = 50;
-    query = query.toLowerCase();
-    const filtered = adminExercisesCache.filter(ex => 
-        ex.name.toLowerCase().includes(query) || 
-        ex.muscle_group.toLowerCase().includes(query)
-    );
-    document.getElementById('exGrid').innerHTML = renderAdminExercises(filtered);
-    document.getElementById('exCountLbl').innerText = `التمارين المتوفرة في قاعدة البيانات (${filtered.length})`;
-}
-
-function loadMoreAdminExercises() {
-    currentAdminExLimit += 50;
-    const query = document.getElementById('exSearch') ? document.getElementById('exSearch').value : '';
-    filterAdminExercises(query, false);
 }
 
 /* ---- Admin Food Library ---- */
