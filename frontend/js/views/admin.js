@@ -1068,10 +1068,23 @@ views['a-client-detail'] = async () => {
     <div class="card" style="border:1px solid var(--coral);background:rgba(255,107,107,0.05)">
       <b style="font-size:16px;color:var(--coral)">حذف العميل نهائياً</b>
       <div class="stat-sub" style="margin-top:4px;margin-bottom:15px;color:var(--text-dim)">الحذف هيمسح كل بيانات العميل وتطوره ورسايله، ومش هتقدر ترجعها تاني.</div>
-      <button class="btn btn-primary" style="background:var(--coral);color:#fff" onclick="deleteClient()">حذف الحساب نهائياً</button>
+      <button class="btn btn-primary" style="background:var(--coral);color:#fff" onclick="deleteClientConfirm()">حذف الحساب نهائياً</button>
     </div>
   </div>
 `;
+}
+
+async function deleteClientConfirm() {
+  if(!(await appConfirm('متأكد إنك عايز تمسح العميل ده؟ كل بياناته هتطير!'))) return;
+  
+  try {
+    await apiFetch('/admin/clients/' + window.currentClientId, { method: 'DELETE' });
+    toast('تم مسح العميل بنجاح');
+    window.currentClientId = null;
+    goView('a-clients'); // Go back to list
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
 }
 
 async function toggleClientActive() {
@@ -1137,19 +1150,6 @@ async function updateClientProfile() {
   }
 }
 
-async function deleteClient() {
-  if(!window.currentClientId) return;
-  if(!confirm('متأكد إنك عايز تمسح العميل ده؟ كل بياناته هتطير!')) return;
-  
-  try {
-    await apiFetch('/admin/clients/' + window.currentClientId, { method: 'DELETE' });
-    toast('تم مسح العميل بنجاح');
-    window.currentClientId = null;
-    goView('a-clients'); // Go back to list
-  } catch(e) {
-    toast('❌ ' + e.message);
-  }
-}
 function switchTab(btn, id){
   btn.parentElement.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
@@ -1372,16 +1372,16 @@ async function saveCategoryModal() {
     await refreshCategoriesUI();
   } catch(e) { toast('❌ ' + e.message); }
 }
-async function deleteCategoryConfirm(catId) {
+window.deleteCategoryConfirm = async function(catId) {
   const cat = adminCategoriesCache.find(c => c.id === catId);
-  showConfirm(`حذف قسم "${cat?.name}" وكل تمارينه؟`, async () => {
-    try {
-      await apiFetch('/admin/exercise-categories/' + catId, { method: 'DELETE' });
-      toast('✅ تم حذف القسم');
-      adminCategoriesCache = adminCategoriesCache.filter(c => c.id !== catId);
-      document.getElementById('cat-' + catId)?.remove();
-    } catch(e) { toast('❌ ' + e.message); }
-  });
+  if (!(await appConfirm(`حذف قسم "${cat?.name}" وكل تمارينه؟`))) return;
+  
+  try {
+    await apiFetch('/admin/exercise-categories/' + catId, { method: 'DELETE' });
+    toast('✅ تم حذف القسم');
+    adminCategoriesCache = adminCategoriesCache.filter(c => c.id !== catId);
+    document.getElementById('cat-' + catId)?.remove();
+  } catch(e) { toast('❌ ' + e.message); }
 }
 
 // ── Exercise Picker Modal ──────────────────────────────────────
@@ -1713,33 +1713,15 @@ async function saveFoodItem() {
   }
 }
 
-// Custom Confirm Modal
-let confirmCallback = null;
-function showConfirm(msg, onConfirm) {
-  document.getElementById('confirmModalText').innerText = msg;
-  confirmCallback = onConfirm;
-  document.getElementById('confirmModalBtn').onclick = () => {
-    const cb = confirmCallback;
-    closeConfirmModal();
-    if(cb) cb();
-  };
-  document.getElementById('confirmModal').classList.add('show');
-}
-function closeConfirmModal() {
-  document.getElementById('confirmModal').classList.remove('show');
-  confirmCallback = null;
-}
-
-function deleteFoodItem(id) {
-  showConfirm('هل أنت متأكد من حذف هذا الصنف نهائياً؟', async () => {
-    try {
-      await apiFetch('/admin/nutrition/foods/' + id, { method: 'DELETE' });
-      toast('✅ تم الحذف');
-      goView('a-foods');
-    } catch(e) {
-      toast('❌ خطأ: ' + e.message);
-    }
-  });
+window.deleteFoodItem = async function(id) {
+  if (!(await appConfirm('هل أنت متأكد من حذف هذا الصنف نهائياً؟'))) return;
+  try {
+    await apiFetch('/admin/nutrition/foods/' + id, { method: 'DELETE' });
+    toast('✅ تم الحذف');
+    goView('a-foods');
+  } catch(e) {
+    toast('❌ خطأ: ' + e.message);
+  }
 }
 
 /* ---- Admin AI Nutrition Generator ---- */
@@ -1859,7 +1841,6 @@ async function generateAiPlan() {
   } catch (err) {
     showNotification(err.message || 'حدث خطأ أثناء التوليد', 'error');
   } finally {
-    document.getElementById('aiLoadingOverlay').style.display = 'none';
     document.getElementById('btnGenerate').disabled = false;
   }
 }

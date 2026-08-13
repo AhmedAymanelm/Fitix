@@ -1186,7 +1186,7 @@ async function saveUserInBody() {
 }
 
 async function deleteUserInBody(id) {
-  if(!confirm('متأكد إنك عاوز تمسح القراءة دي؟')) return;
+  if(!(await appConfirm('متأكد إنك عاوز تمسح القراءة دي؟'))) return;
   try {
     await apiFetch('/inbody/' + id, {method: 'DELETE'});
     toast('✅ تم الحذف');
@@ -1330,7 +1330,7 @@ async function uploadMyBodyPhotos() {
 
 async function deleteMyPhoto(slot) {
   const label = { front: 'الوش', back: 'الظهر', side: 'الجنب' }[slot] || slot;
-  if (!confirm(`هل تريد مسح صورة ${label}؟`)) return;
+  if (!(await appConfirm(`هل تريد مسح صورة ${label}؟`))) return;
   try {
     await apiFetch(`/inbody/my-photos/${slot}`, { method: 'DELETE' });
     toast(`✅ تم مسح صورة ${label} بنجاح`);

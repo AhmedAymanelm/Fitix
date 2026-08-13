@@ -64,4 +64,35 @@ function ring(pct, color, value, label, sub){
   </div>`;
 }
 
+/* ============ CUSTOM CONFIRM MODAL ============ */
+window.appConfirm = function(msg, confirmText = 'نعم، متأكد', cancelText = 'إلغاء') {
+  return new Promise((resolve) => {
+    let m = document.getElementById('globalAppConfirm');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'globalAppConfirm';
+      document.body.appendChild(m);
+    }
+    m.innerHTML = `
+      <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;justify-content:center;align-items:center;padding:20px; animation:fadeIn 0.2s;">
+        <div style="background:var(--surface-2);border-radius:24px;width:100%;max-width:400px;border:1px solid var(--border);padding:30px;text-align:center;box-shadow:0 20px 40px rgba(0,0,0,0.5); animation:slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);">
+          <div style="font-size:50px; margin-bottom:15px; text-shadow: 0 4px 15px rgba(0,0,0,0.5);">⚠️</div>
+          <h3 style="margin-bottom:25px;font-size:20px;color:var(--text);line-height:1.5; font-weight:800;">${msg}</h3>
+          <div style="display:flex;gap:12px;">
+            <button class="btn btn-primary" style="flex:1;background:var(--coral);color:#fff;border:none;padding:12px;font-size:16px;border-radius:12px;font-weight:bold;" id="globalConfirmBtnOk">${confirmText}</button>
+            <button class="btn btn-ghost" style="flex:1;padding:12px;font-size:16px;border-radius:12px;border:1px solid var(--border);font-weight:bold;" id="globalConfirmBtnCancel">${cancelText}</button>
+          </div>
+        </div>
+      </div>
+      <style>
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+      </style>
+    `;
+    
+    document.getElementById('globalConfirmBtnOk').onclick = () => { m.innerHTML = ''; resolve(true); };
+    document.getElementById('globalConfirmBtnCancel').onclick = () => { m.innerHTML = ''; resolve(false); };
+  });
+};
+
 /* ============ VIEWS ============ */
