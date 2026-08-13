@@ -1176,51 +1176,60 @@ views['a-library'] = async () => {
 
 function renderLibraryPage() {
   const cats = adminCategoriesCache;
-  const catsHtml = cats.length === 0
-    ? `<div style="text-align:center;padding:60px 20px;color:var(--text-dim);">
-        <div style="font-size:48px;margin-bottom:16px;">📂</div>
-        <h3 style="margin-bottom:8px;">لا يوجد أقسام بعد</h3>
-        <p style="margin-bottom:20px;">ابدأ بإضافة قسم جديد (مثل: صدر، ظهر، أرجل)</p>
-        <button class="btn btn-primary" onclick="openAddCategoryModal()">+ إضافة أول قسم</button>
-      </div>`
-    : cats.map(cat => renderCategoryCard(cat)).join('');
+
+  const emptyState = `
+    <div style="text-align:center;padding:80px 20px;">
+      <div style="font-size:64px;margin-bottom:20px;opacity:.4;">🏋️</div>
+      <h2 style="font-weight:800;margin-bottom:8px;font-size:22px;">ابدأ بإنشاء أول قسم</h2>
+      <p style="color:var(--text-dim);margin-bottom:28px;font-size:15px;">نظّم تمارينك في أقسام — صدر · ظهر · أرجل · أكتاف...</p>
+      <button class="btn btn-primary" style="padding:14px 32px;font-size:16px;" onclick="openAddCategoryModal()">+ إضافة أول قسم</button>
+    </div>`;
 
   return `
-  <div class="page-head" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:15px;margin-bottom:24px;">
+  <!-- ── Header ── -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
     <div>
-      <h1>مكتبة التمارين</h1>
-      <p style="color:var(--text-dim)">${cats.length} قسم · ${adminExercisesCache.length} تمرين في قاعدة البيانات</p>
+      <h1 style="font-size:26px;font-weight:900;">مكتبة التمارين</h1>
+      <p style="color:var(--text-dim);margin-top:4px;">${cats.length} قسم · ${adminExercisesCache.length} تمرين متاح</p>
     </div>
-    <div style="display:flex;gap:10px;">
-      <button class="btn btn-ghost" style="border:1px solid var(--border)" onclick="openUploadExerciseModal()">📤 رفع تمرين جديد</button>
-      <button class="btn btn-primary" onclick="openAddCategoryModal()">+ إضافة قسم</button>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn btn-ghost" style="border:1px solid var(--border);gap:6px;" onclick="openUploadExerciseModal()">
+        <span>📤</span> رفع تمرين
+      </button>
+      <button class="btn btn-primary" style="gap:6px;" onclick="openAddCategoryModal()">
+        <span style="font-size:18px;">+</span> قسم جديد
+      </button>
     </div>
-  </div>
-  <div id="categoriesContainer">
-    ${catsHtml}
   </div>
 
-  <!-- Add/Edit Category Modal -->
+  <!-- ── Categories ── -->
+  <div id="categoriesContainer">
+    ${cats.length === 0 ? emptyState : cats.map(renderCategoryCard).join('')}
+  </div>
+
+  <!-- ══ Category Modal ══ -->
   <div class="modal-overlay" id="categoryModal">
-    <div class="modal-box" style="max-width:440px;">
+    <div class="modal-box" style="max-width:420px;">
       <div class="modal-head">
-        <h3 id="categoryModalTitle">إضافة قسم جديد</h3>
+        <h3 id="categoryModalTitle">قسم جديد</h3>
         <button class="btn btn-icon" onclick="closeCategoryModal()">✕</button>
       </div>
-      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
-        <div>
-          <label class="settings-label">اسم القسم *</label>
-          <input id="catName" class="settings-input" placeholder="مثال: تمارين الصدر">
+      <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+        <div style="display:flex;gap:12px;align-items:flex-end;">
+          <div style="flex:0 0 72px;">
+            <label class="settings-label">أيقونة</label>
+            <input id="catIcon" class="settings-input" placeholder="💪" maxlength="4" style="text-align:center;font-size:22px;padding:8px;">
+          </div>
+          <div style="flex:1;">
+            <label class="settings-label">اسم القسم *</label>
+            <input id="catName" class="settings-input" placeholder="مثال: تمارين الصدر">
+          </div>
         </div>
         <div>
-          <label class="settings-label">أيقونة (إيموجي اختياري)</label>
-          <input id="catIcon" class="settings-input" placeholder="مثال: 💪" maxlength="4" style="width:80px">
+          <label class="settings-label">وصف (اختياري)</label>
+          <textarea id="catDesc" class="settings-input" rows="2" placeholder="وصف مختصر للقسم..."></textarea>
         </div>
-        <div>
-          <label class="settings-label">وصف اختياري</label>
-          <textarea id="catDesc" class="settings-input" rows="2" placeholder="وصف القسم..."></textarea>
-        </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
+        <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:4px;">
           <button class="btn btn-ghost" onclick="closeCategoryModal()">إلغاء</button>
           <button class="btn btn-primary" onclick="saveCategoryModal()">حفظ القسم</button>
         </div>
@@ -1228,35 +1237,42 @@ function renderLibraryPage() {
     </div>
   </div>
 
-  <!-- Add Exercise to Category Modal -->
+  <!-- ══ Pick Exercise Modal ══ -->
   <div class="modal-overlay" id="addExToCatModal">
-    <div class="modal-box" style="max-width:560px;">
-      <div class="modal-head">
-        <h3>إضافة تمرين للقسم</h3>
+    <div class="modal-box" style="max-width:680px;max-height:90vh;display:flex;flex-direction:column;">
+      <div class="modal-head" style="flex-shrink:0;">
+        <div>
+          <h3>اختر تمرين</h3>
+          <p style="font-size:12px;color:var(--text-dim);margin-top:2px;" id="pickCatLabel"></p>
+        </div>
         <button class="btn btn-icon" onclick="closeAddExToCatModal()">✕</button>
       </div>
-      <div style="padding:20px;display:flex;flex-direction:column;gap:14px;">
-        <input id="exSearchInModal" class="settings-input" placeholder="بحث عن تمرين..." oninput="filterExInModal(this.value)">
-        <div id="exListInModal" style="max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
-        <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;flex-direction:column;gap:10px;">
-          <div style="display:flex;gap:10px;">
-            <div style="flex:1">
-              <label class="settings-label">السيتات</label>
-              <input id="exSets" class="settings-input" type="number" placeholder="مثال: 4" min="1" max="20">
-            </div>
-            <div style="flex:1">
-              <label class="settings-label">التكرارات</label>
-              <input id="exReps" class="settings-input" placeholder="مثال: 8-12">
-            </div>
+
+      <!-- Search -->
+      <div style="padding:14px 20px 0;flex-shrink:0;">
+        <input id="exSearchInModal" class="settings-input" placeholder="🔍  ابحث عن تمرين بالاسم أو العضلة..." oninput="filterExInModal(this.value)" style="width:100%;">
+      </div>
+
+      <!-- Grid of exercises with thumbnails -->
+      <div id="exListInModal" style="padding:14px 20px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;"></div>
+
+      <!-- Sets/Reps row -->
+      <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);">
+        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">ضبط التمرين المختار:</p>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div>
+            <label class="settings-label">السيتات</label>
+            <input id="exSets" class="settings-input" type="number" placeholder="4" min="1" max="30" style="width:80px;">
           </div>
           <div>
-            <label class="settings-label">ملاحظة اختيارية</label>
+            <label class="settings-label">التكرارات</label>
+            <input id="exReps" class="settings-input" placeholder="8-12" style="width:100px;">
+          </div>
+          <div style="flex:1;min-width:140px;">
+            <label class="settings-label">ملاحظة</label>
             <input id="exNote" class="settings-input" placeholder="مثال: ركز على الشد">
           </div>
-        </div>
-        <div style="display:flex;gap:10px;justify-content:flex-end;">
-          <button class="btn btn-ghost" onclick="closeAddExToCatModal()">إلغاء</button>
-          <button class="btn btn-primary" onclick="confirmAddExToCategory()">إضافة التمرين</button>
+          <button class="btn btn-primary" onclick="confirmAddExToCategory()" style="flex-shrink:0;">إضافة ✓</button>
         </div>
       </div>
     </div>
@@ -1265,52 +1281,68 @@ function renderLibraryPage() {
 }
 
 function renderCategoryCard(cat) {
-  const exRows = cat.exercises.length === 0
-    ? `<div style="text-align:center;padding:20px;color:var(--text-dimmer);font-size:13px;">لا يوجد تمارين في هذا القسم بعد</div>`
-    : cat.exercises.map(ex => `
-      <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border-radius:10px;border:1px solid var(--border);">
-        ${ex.gif_url || ex.video_url
-          ? `<img src="${ex.gif_url || ex.video_url}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">`
-          : `<div style="width:48px;height:48px;border-radius:8px;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">🏋️</div>`}
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:14px;">${ex.name}</div>
-          <div style="font-size:12px;color:var(--text-dim);">${ex.muscle_group}${ex.sets ? ` · ${ex.sets} سيت` : ''}${ex.reps ? ` × ${ex.reps}` : ''}${ex.notes ? ` · ${ex.notes}` : ''}</div>
-        </div>
-        <button class="btn btn-icon" style="color:var(--coral);background:rgba(230,57,70,.1);" onclick="removeExFromCategory(${cat.id}, ${ex.cat_exercise_id})" title="إزالة">✕</button>
-      </div>`).join('');
+  const exGrid = cat.exercises.length === 0
+    ? `<div style="padding:28px;text-align:center;color:var(--text-dimmer);border:2px dashed var(--border);border-radius:12px;">
+        لا توجد تمارين — اضغط "+ إضافة تمرين"
+       </div>`
+    : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;">
+        ${cat.exercises.map((ex, idx) => {
+          const thumb = ex.gif_url || ex.video_url || '';
+          return `
+          <div style="position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface);cursor:default;transition:.2s;" onmouseover="this.querySelector('.ex-overlay').style.opacity=1" onmouseout="this.querySelector('.ex-overlay').style.opacity=0">
+            <!-- thumbnail -->
+            <div style="height:90px;background:var(--surface-3);position:relative;overflow:hidden;">
+              ${thumb ? `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\'height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;\\'>🏋️</div>'">` : '<div style="height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;">🏋️</div>'}
+              <span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);border-radius:6px;padding:2px 6px;font-size:10px;color:#fff;">${ex.muscle_group}</span>
+            </div>
+            <!-- info -->
+            <div style="padding:8px 10px;">
+              <div style="font-weight:700;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ex.name}</div>
+              <div style="font-size:11px;color:var(--accent);margin-top:2px;">${ex.sets ? ex.sets + ' سيت' : ''}${ex.reps ? ' × ' + ex.reps : ''}</div>
+            </div>
+            <!-- hover overlay -->
+            <div class="ex-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;opacity:0;transition:.2s;">
+              <button class="btn btn-icon" style="background:rgba(230,57,70,.9);color:#fff;width:36px;height:36px;" onclick="removeExFromCategory(${cat.id}, ${ex.cat_exercise_id})" title="إزالة">✕</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>`;
 
   return `
-  <div class="card" style="margin-bottom:20px;" id="cat-${cat.id}">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:28px;">${cat.icon || '📌'}</span>
+  <div class="card" style="margin-bottom:20px;padding:0;overflow:hidden;" id="cat-${cat.id}">
+    <!-- Section Header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);background:var(--surface-2);flex-wrap:wrap;gap:10px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:32px;line-height:1;">${cat.icon || '📌'}</span>
         <div>
-          <h3 style="font-size:18px;font-weight:800;">${cat.name}</h3>
-          ${cat.description ? `<p style="font-size:12px;color:var(--text-dim);margin-top:2px;">${cat.description}</p>` : ''}
+          <h3 style="font-size:17px;font-weight:800;margin:0;">${cat.name}</h3>
+          ${cat.description ? `<p style="font-size:12px;color:var(--text-dim);margin:2px 0 0;">${cat.description}</p>` : ''}
         </div>
-        <span style="background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:2px 10px;font-size:12px;color:var(--text-dim);">${cat.exercises.length} تمرين</span>
+        <span style="background:rgba(74,144,226,.15);color:var(--accent);border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700;">${cat.exercises.length} تمرين</span>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-ghost btn-sm" style="border:1px solid var(--border)" onclick="openEditCategoryModal(${cat.id})">✏️ تعديل</button>
-        <button class="btn btn-ghost btn-sm" style="border:1px solid var(--border);color:var(--coral)" onclick="deleteCategoryConfirm(${cat.id})">🗑️ حذف</button>
+        <button class="btn btn-ghost btn-sm" style="border:1px solid var(--border);" onclick="openEditCategoryModal(${cat.id})">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="border:1px solid rgba(230,57,70,.4);color:var(--coral);" onclick="deleteCategoryConfirm(${cat.id})">🗑️</button>
         <button class="btn btn-primary btn-sm" onclick="openAddExToCatModal(${cat.id})">+ إضافة تمرين</button>
       </div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:8px;" id="exList-${cat.id}">
-      ${exRows}
+    <!-- Exercises Grid -->
+    <div style="padding:18px 22px;">
+      ${exGrid}
     </div>
   </div>`;
 }
 
-// ── Category Modal Logic ──────────────────────────────────────
+// ── Category Modal ─────────────────────────────────────────────
 let _editingCatId = null;
 function openAddCategoryModal() {
   _editingCatId = null;
-  document.getElementById('categoryModalTitle').innerText = 'إضافة قسم جديد';
+  document.getElementById('categoryModalTitle').innerText = 'قسم جديد';
   document.getElementById('catName').value = '';
   document.getElementById('catIcon').value = '';
   document.getElementById('catDesc').value = '';
   document.getElementById('categoryModal').classList.add('show');
+  setTimeout(() => document.getElementById('catName').focus(), 100);
 }
 function openEditCategoryModal(catId) {
   const cat = adminCategoriesCache.find(c => c.id === catId);
@@ -1328,11 +1360,7 @@ function closeCategoryModal() {
 async function saveCategoryModal() {
   const name = document.getElementById('catName').value.trim();
   if (!name) return toast('يرجى كتابة اسم القسم!');
-  const data = {
-    name,
-    icon: document.getElementById('catIcon').value.trim() || null,
-    description: document.getElementById('catDesc').value.trim() || null,
-  };
+  const data = { name, icon: document.getElementById('catIcon').value.trim() || null, description: document.getElementById('catDesc').value.trim() || null };
   try {
     if (_editingCatId) {
       await apiFetch('/admin/exercise-categories/' + _editingCatId, { method: 'PUT', body: JSON.stringify(data) });
@@ -1342,60 +1370,75 @@ async function saveCategoryModal() {
       toast('✅ تم إضافة القسم');
     }
     closeCategoryModal();
-    adminCategoriesCache = await apiFetch('/admin/exercise-categories');
-    document.getElementById('categoriesContainer').innerHTML =
-      adminCategoriesCache.length === 0
-        ? `<div style="text-align:center;padding:60px;color:var(--text-dim);">لا يوجد أقسام — اضغط "+ إضافة قسم"</div>`
-        : adminCategoriesCache.map(renderCategoryCard).join('');
+    await refreshCategoriesUI();
   } catch(e) { toast('❌ ' + e.message); }
 }
 async function deleteCategoryConfirm(catId) {
   const cat = adminCategoriesCache.find(c => c.id === catId);
-  showConfirm(`هل تريد حذف قسم "${cat?.name}" وكل تمارينه؟`, async () => {
+  showConfirm(`حذف قسم "${cat?.name}" وكل تمارينه؟`, async () => {
     try {
       await apiFetch('/admin/exercise-categories/' + catId, { method: 'DELETE' });
       toast('✅ تم حذف القسم');
       adminCategoriesCache = adminCategoriesCache.filter(c => c.id !== catId);
-      const el = document.getElementById('cat-' + catId);
-      if (el) el.remove();
+      document.getElementById('cat-' + catId)?.remove();
     } catch(e) { toast('❌ ' + e.message); }
   });
 }
 
-// ── Add Exercise to Category Modal ─────────────────────────────
+// ── Exercise Picker Modal ──────────────────────────────────────
 let _targetCatId = null;
 let _selectedExId = null;
+
 function openAddExToCatModal(catId) {
   _targetCatId = catId;
   _selectedExId = null;
+  const cat = adminCategoriesCache.find(c => c.id === catId);
+  document.getElementById('pickCatLabel').innerText = `القسم: ${cat?.name || ''}`;
   document.getElementById('exSearchInModal').value = '';
   document.getElementById('exSets').value = '';
   document.getElementById('exReps').value = '';
   document.getElementById('exNote').value = '';
-  renderExListInModal(adminExercisesCache);
+  renderExGridInModal(adminExercisesCache);
   document.getElementById('addExToCatModal').classList.add('show');
 }
 function closeAddExToCatModal() {
   document.getElementById('addExToCatModal').classList.remove('show');
   _targetCatId = null; _selectedExId = null;
 }
-function renderExListInModal(exercises) {
+
+function renderExGridInModal(exercises) {
   const container = document.getElementById('exListInModal');
   if (!container) return;
-  container.innerHTML = exercises.slice(0, 60).map(ex => `
-    <div id="exOpt-${ex.id}" onclick="selectExInModal(${ex.id})" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;border:2px solid var(--border);cursor:pointer;transition:.15s;background:var(--surface);">
-      <div style="flex:1;">
-        <div style="font-weight:700;font-size:14px;">${ex.name}</div>
-        <div style="font-size:11px;color:var(--text-dim);">${ex.muscle_group} · ${ex.difficulty || 'عام'}</div>
+  if (exercises.length === 0) {
+    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-dim);">لا توجد نتائج</div>';
+    return;
+  }
+  container.innerHTML = exercises.slice(0, 80).map(ex => {
+    const thumb = ex.gif_url || ex.video_url || '';
+    return `
+    <div id="exOpt-${ex.id}" onclick="selectExInModal(${ex.id})" style="border-radius:10px;overflow:hidden;border:2px solid var(--border);cursor:pointer;transition:.15s;background:var(--surface);">
+      <div style="height:80px;background:var(--surface-3);overflow:hidden;position:relative;">
+        ${thumb
+          ? `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\'height:80px;display:flex;align-items:center;justify-content:center;font-size:24px;\\'>🏋️</div>'">`
+          : '<div style="height:80px;display:flex;align-items:center;justify-content:center;font-size:24px;">🏋️</div>'}
+        <span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.75);border-radius:4px;padding:1px 5px;font-size:9px;color:#ccc;">${ex.difficulty || ''}</span>
       </div>
-    </div>`).join('');
+      <div style="padding:7px 8px;">
+        <div style="font-size:11px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ex.name}</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">${ex.muscle_group}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
+
 function filterExInModal(query) {
   const q = query.toLowerCase();
   const filtered = adminExercisesCache.filter(ex =>
     ex.name.toLowerCase().includes(q) || ex.muscle_group.toLowerCase().includes(q));
-  renderExListInModal(filtered);
+  renderExGridInModal(filtered);
+  _selectedExId = null;
 }
+
 function selectExInModal(exId) {
   _selectedExId = exId;
   document.querySelectorAll('[id^="exOpt-"]').forEach(el => {
@@ -1403,8 +1446,9 @@ function selectExInModal(exId) {
     el.style.background = 'var(--surface)';
   });
   const el = document.getElementById('exOpt-' + exId);
-  if (el) { el.style.borderColor = 'var(--accent)'; el.style.background = 'rgba(74,144,226,.1)'; }
+  if (el) { el.style.borderColor = 'var(--accent)'; el.style.background = 'rgba(74,144,226,.15)'; }
 }
+
 async function confirmAddExToCategory() {
   if (!_selectedExId) return toast('اختار تمرين الأول!');
   const data = {
@@ -1416,36 +1460,40 @@ async function confirmAddExToCategory() {
   try {
     await apiFetch('/admin/exercise-categories/' + _targetCatId + '/exercises', { method: 'POST', body: JSON.stringify(data) });
     toast('✅ تم إضافة التمرين');
+    const savedCatId = _targetCatId;
     closeAddExToCatModal();
-    // refresh categories
-    adminCategoriesCache = await apiFetch('/admin/exercise-categories');
-    const cat = adminCategoriesCache.find(c => c.id === _targetCatId);
-    if (cat) {
-      const el = document.getElementById('cat-' + _targetCatId);
-      if (el) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = renderCategoryCard(cat);
-        el.replaceWith(tmp.firstElementChild);
-      }
-    }
+    await refreshCategoryCard(savedCatId);
   } catch(e) { toast('❌ ' + e.message); }
 }
+
 async function removeExFromCategory(catId, itemId) {
   try {
     await apiFetch('/admin/exercise-categories/' + catId + '/exercises/' + itemId, { method: 'DELETE' });
     toast('✅ تمت الإزالة');
-    adminCategoriesCache = await apiFetch('/admin/exercise-categories');
-    const cat = adminCategoriesCache.find(c => c.id === catId);
-    if (cat) {
-      const el = document.getElementById('cat-' + catId);
-      if (el) {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = renderCategoryCard(cat);
-        el.replaceWith(tmp.firstElementChild);
-      }
-    }
+    await refreshCategoryCard(catId);
   } catch(e) { toast('❌ ' + e.message); }
 }
+
+async function refreshCategoryCard(catId) {
+  adminCategoriesCache = await apiFetch('/admin/exercise-categories');
+  const cat = adminCategoriesCache.find(c => c.id === catId);
+  const el = document.getElementById('cat-' + catId);
+  if (cat && el) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderCategoryCard(cat);
+    el.replaceWith(tmp.firstElementChild);
+  }
+}
+
+async function refreshCategoriesUI() {
+  adminCategoriesCache = await apiFetch('/admin/exercise-categories');
+  const container = document.getElementById('categoriesContainer');
+  if (!container) return;
+  container.innerHTML = adminCategoriesCache.length === 0
+    ? `<div style="text-align:center;padding:60px;color:var(--text-dim);">لا يوجد أقسام — اضغط "+ قسم جديد"</div>`
+    : adminCategoriesCache.map(renderCategoryCard).join('');
+}
+
 window.openAddCategoryModal = openAddCategoryModal;
 window.closeCategoryModal = closeCategoryModal;
 window.saveCategoryModal = saveCategoryModal;
