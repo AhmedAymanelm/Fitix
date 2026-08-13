@@ -1266,19 +1266,25 @@ function renderLibraryPage() {
   `;
 }
 
+window._expandedCats = window._expandedCats || new Set();
+
 function renderCategoryCard(cat) {
+  const isExpanded = window._expandedCats.has(cat.id);
+  const visibleExercises = isExpanded ? cat.exercises : cat.exercises.slice(0, 12);
+  const hasMore = cat.exercises.length > 12 && !isExpanded;
+
   const exGrid = cat.exercises.length === 0
     ? `<div style="padding:28px;text-align:center;color:var(--text-dimmer);border:2px dashed var(--border);border-radius:12px;">
         لا توجد تمارين — اضغط "+ إضافة تمرين"
        </div>`
     : `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;">
-        ${cat.exercises.map((ex, idx) => {
+        ${visibleExercises.map((ex, idx) => {
           const thumb = ex.gif_url || ex.video_url || '';
           return `
           <div style="position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--border);background:var(--surface);cursor:default;transition:.2s;" onmouseover="this.querySelector('.ex-overlay').style.opacity=1" onmouseout="this.querySelector('.ex-overlay').style.opacity=0">
             <!-- thumbnail -->
             <div style="height:90px;background:var(--surface-3);position:relative;overflow:hidden;">
-              ${thumb ? `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\'height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;\\'>🏋️</div>'">` : '<div style="height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;">🏋️</div>'}
+              ${thumb ? `<img src="${thumb}" loading="lazy" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\'height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;\\'>🏋️</div>'">` : '<div style="height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;">🏋️</div>'}
               <span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.7);border-radius:6px;padding:2px 6px;font-size:10px;color:#fff;">${ex.muscle_group}</span>
             </div>
             <!-- info -->
@@ -1292,6 +1298,13 @@ function renderCategoryCard(cat) {
             </div>
           </div>`;
         }).join('')}
+        
+        ${hasMore ? `
+          <div onclick="expandCategory(${cat.id})" style="border-radius:12px;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--surface-2);min-height:140px;flex-direction:column;gap:8px;color:var(--accent);font-weight:700;font-size:13px;transition:.2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <span style="font-size:24px;">+${cat.exercises.length - 12}</span>
+            <span>عرض باقي التمارين</span>
+          </div>
+        ` : ''}
       </div>`;
 
   return `
@@ -1404,7 +1417,7 @@ function renderExGridInModal(exercises) {
   container.style.gap = '12px';
   container.style.minHeight = '0'; // important for nested flex scrolling
 
-  container.innerHTML = exercises.map(ex => {
+  container.innerHTML = exercises.slice(0, 80).map(ex => {
     const thumb = ex.gif_url || ex.video_url || '';
     const isVideo = thumb.endsWith('.mp4') || thumb.endsWith('.webm');
     
@@ -1537,6 +1550,17 @@ async function refreshCategoriesUI() {
     : adminCategoriesCache.map(renderCategoryCard).join('');
 }
 
+function expandCategory(catId) {
+  window._expandedCats.add(catId);
+  const cat = adminCategoriesCache.find(c => c.id === catId);
+  const el = document.getElementById('cat-' + catId);
+  if (cat && el) {
+    const tmp = document.createElement('div');
+    tmp.innerHTML = renderCategoryCard(cat);
+    el.replaceWith(tmp.firstElementChild);
+  }
+}
+
 window.openAddCategoryModal = openAddCategoryModal;
 window.closeCategoryModal = closeCategoryModal;
 window.saveCategoryModal = saveCategoryModal;
@@ -1548,6 +1572,7 @@ window.selectExInModal = selectExInModal;
 window.filterExInModal = filterExInModal;
 window.confirmAddExToCategory = confirmAddExToCategory;
 window.removeExFromCategory = removeExFromCategory;
+window.expandCategory = expandCategory;
 
 function filterAdminExercises(query, resetLimit=true) {
     if(resetLimit) currentAdminExLimit = 50;
