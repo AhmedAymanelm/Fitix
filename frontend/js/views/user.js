@@ -149,7 +149,8 @@ window.submitWorkoutLog = async function(isCompleted, silent = false) {
         });
         
         if (!silent) {
-            localStorage.removeItem('workoutState');
+            // Keep the state in localStorage so the user can still see their completed exercises. 
+            // It will naturally reset the next day because of the date check in u-dash.
             toast('تم حفظ سجل التدريب بنجاح');
             goView('u-dash');
         }
