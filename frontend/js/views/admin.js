@@ -2892,7 +2892,7 @@ function buildManualNutritionModal() {
 
 function updateManualMealName(mIndex, val) { manualMeals[mIndex].name = val; }
 function addManualMeal() { 
-  manualMeals.push({ name: \`وجبة \${manualMeals.length+1}\`, items: [] });
+  manualMeals.push({ name: `وجبة ${manualMeals.length+1}`, items: [] });
   document.getElementById('manualNutritionModal').innerHTML = buildManualNutritionModal();
 }
 function removeManualMeal(mIndex) {
@@ -2932,7 +2932,7 @@ async function submitManualNutrition(event) {
   btn.disabled = true;
 
   try {
-    const res = await apiFetch(\`/admin/plans/manual/\${currentManualClientId}\`, {
+    const res = await apiFetch(`/admin/plans/manual/${currentManualClientId}`, {
       method: 'POST',
       body: JSON.stringify(payload)
     });
