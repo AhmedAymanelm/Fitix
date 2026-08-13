@@ -998,7 +998,10 @@ views['a-client-detail'] = async () => {
   </div>
 
   <div class="tab-panel ${activeTab === 't4' ? 'active' : ''}" id="t4">
-    <div class="section-title">النظام الغذائي <span>الخطة الحالية</span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+      <div class="section-title" style="margin:0">النظام الغذائي <span>الخطة الحالية</span></div>
+      <button class="btn btn-outline" style="padding:5px 10px; font-size:12px; color:var(--lime); border-color:var(--lime)" onclick="openManualNutritionModal(${c.id})">🛠️ إنشاء نظام يدوياً</button>
+    </div>
     ${nutritionHtml}
   </div>
 
@@ -2819,3 +2822,127 @@ window.printClientReport = async function(clientId) {
     }
 }
 
+// --- Manual Nutrition Plan ---
+let allFoodsData = [];
+let manualMeals = [];
+let currentManualClientId = null;
+
+async function openManualNutritionModal(clientId) {
+  currentManualClientId = clientId;
+  try {
+    const foods = await apiFetch('/admin/nutrition/foods');
+    allFoodsData = foods;
+    manualMeals = [{ name: 'الفطور', items: [] }, { name: 'الغداء', items: [] }]; 
+    
+    let m = document.getElementById('manualNutritionModal');
+    if (!m) {
+      m = document.createElement('div');
+      m.id = 'manualNutritionModal';
+      m.className = 'modal';
+      document.body.appendChild(m);
+    }
+    
+    m.innerHTML = buildManualNutritionModal();
+    m.style.display = 'flex';
+  } catch(e) {
+    alert(e.message);
+  }
+}
+
+function buildManualNutritionModal() {
+  let mealsHtml = manualMeals.map((meal, mIndex) => `
+    <div class="card" style="margin-bottom:15px; border-left:3px solid var(--lime); background:var(--bg-card)">
+      <div style="display:flex; justify-content:space-between; margin-bottom:10px">
+        <input type="text" class="settings-input" style="width:150px" value="${meal.name}" onchange="updateManualMealName(${mIndex}, this.value)" placeholder="اسم الوجبة">
+        <button class="btn btn-outline" style="color:var(--coral);border-color:var(--coral);padding:5px 10px;font-size:12px" onclick="removeManualMeal(${mIndex})">حذف الوجبة</button>
+      </div>
+      <div id="items-container-${mIndex}">
+        ${meal.items.map((item, iIndex) => `
+          <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center">
+            <select class="settings-input" style="flex:1" onchange="updateManualFood(${mIndex}, ${iIndex}, 'food_id', this.value)">
+              <option value="">اختر الصنف...</option>
+              ${allFoodsData.map(f => `<option value="${f.id}" ${f.id == item.food_id ? 'selected' : ''}>${f.name} (${f.calories} kcal/100g)</option>`).join('')}
+            </select>
+            <input type="number" class="settings-input" style="width:100px" placeholder="جرام" value="${item.grams}" onchange="updateManualFood(${mIndex}, ${iIndex}, 'grams', this.value)">
+            <button class="btn btn-ghost" style="color:var(--coral);padding:5px" onclick="removeManualFood(${mIndex}, ${iIndex})">✖</button>
+          </div>
+        `).join('')}
+      </div>
+      <button class="btn btn-ghost" style="font-size:12px; margin-top:5px; color:var(--lime)" onclick="addManualFoodItem(${mIndex})">+ إضافة صنف</button>
+    </div>
+  `).join('');
+
+  return `
+    <div class="modal-content" style="max-width:600px; width:95%; max-height:90vh; overflow-y:auto; background:var(--bg-dark)">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
+        <h2>🛠️ إنشاء نظام غذائي يدوياً</h2>
+        <button class="btn btn-ghost" style="font-size:24px" onclick="document.getElementById('manualNutritionModal').style.display='none'">&times;</button>
+      </div>
+      
+      <div id="manualMealsContainer">
+        ${mealsHtml}
+      </div>
+      
+      <button class="btn btn-outline" style="width:100%; margin-bottom:20px; border-style:dashed; color:var(--text)" onclick="addManualMeal()">+ إضافة وجبة جديدة</button>
+      
+      <button class="btn btn-primary" style="width:100%" onclick="submitManualNutrition(event)">💾 حفظ الخطة واعتمادها</button>
+    </div>
+  `;
+}
+
+function updateManualMealName(mIndex, val) { manualMeals[mIndex].name = val; }
+function addManualMeal() { 
+  manualMeals.push({ name: \`وجبة \${manualMeals.length+1}\`, items: [] });
+  document.getElementById('manualNutritionModal').innerHTML = buildManualNutritionModal();
+}
+function removeManualMeal(mIndex) {
+  manualMeals.splice(mIndex, 1);
+  document.getElementById('manualNutritionModal').innerHTML = buildManualNutritionModal();
+}
+function addManualFoodItem(mIndex) {
+  manualMeals[mIndex].items.push({ food_id: '', grams: 100 });
+  document.getElementById('manualNutritionModal').innerHTML = buildManualNutritionModal();
+}
+function updateManualFood(mIndex, iIndex, key, val) {
+  manualMeals[mIndex].items[iIndex][key] = val;
+}
+function removeManualFood(mIndex, iIndex) {
+  manualMeals[mIndex].items.splice(iIndex, 1);
+  document.getElementById('manualNutritionModal').innerHTML = buildManualNutritionModal();
+}
+
+async function submitManualNutrition(event) {
+  let payload = { meals: [] };
+  for (let m of manualMeals) {
+    if (m.items.length === 0) continue;
+    let validItems = m.items.filter(i => i.food_id && i.grams > 0).map(i => ({ food_id: parseInt(i.food_id), grams: parseInt(i.grams) }));
+    if (validItems.length > 0) {
+      payload.meals.push({
+        name: m.name,
+        alternatives: [{ items: validItems }]
+      });
+    }
+  }
+  
+  if (payload.meals.length === 0) return alert('يجب إضافة وجبات وأصناف صحيحة.');
+
+  const btn = event.target;
+  const oldText = btn.innerHTML;
+  btn.innerHTML = 'جاري الحفظ...';
+  btn.disabled = true;
+
+  try {
+    const res = await apiFetch(\`/admin/plans/manual/\${currentManualClientId}\`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    alert(res.message);
+    document.getElementById('manualNutritionModal').style.display = 'none';
+    showClientProfile(currentManualClientId); 
+  } catch(e) {
+    alert(e.message);
+  } finally {
+    btn.innerHTML = oldText;
+    btn.disabled = false;
+  }
+}

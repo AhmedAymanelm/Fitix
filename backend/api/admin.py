@@ -659,6 +659,120 @@ def delete_client(client_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "تم حذف العميل بنجاح"}
 
+class ManualFoodItem(BaseModel):
+    food_id: int
+    grams: int
+
+class ManualAlternative(BaseModel):
+    items: List[ManualFoodItem]
+
+class ManualMeal(BaseModel):
+    name: str
+    alternatives: List[ManualAlternative]
+
+class ManualPlanCreate(BaseModel):
+    meals: List[ManualMeal]
+
+@router.post("/plans/manual/{client_id}")
+def create_manual_nutrition_plan(client_id: int, payload: ManualPlanCreate, db: Session = Depends(get_db)):
+    """إنشاء نظام غذائي يدوياً من قبل الأدمن."""
+    user = db.query(User).filter(User.id == client_id, User.role == "user").first()
+    if not user:
+        raise HTTPException(status_code=404, detail="العميل مش موجود")
+
+    # حساب المجاميع
+    total_calories = 0
+    total_protein = 0.0
+    total_carbs = 0.0
+    total_fats = 0.0
+
+    # تجهيز الوجبات بنفس صيغة AI
+    meals_data = []
+
+    for meal_input in payload.meals:
+        meal_alts = []
+        meal_calories = 0
+
+        for alt_input in meal_input.alternatives:
+            alt_items = []
+            for item_input in alt_input.items:
+                food_db = db.query(FoodItem).filter(FoodItem.id == item_input.food_id).first()
+                if not food_db:
+                    raise HTTPException(status_code=404, detail=f"صنف الطعام رقم {item_input.food_id} غير موجود")
+
+                # حسابات (القيم في DB لكل 100 جرام)
+                factor = item_input.grams / 100.0
+                cals = food_db.calories * factor
+                prot = food_db.protein * factor
+                carb = food_db.carbs * factor
+                fat = food_db.fats * factor
+
+                # تجميع الماكروز الكلية بناءً على أول بديل (عادة هو الأساسي)
+                if len(meal_alts) == 0:
+                    total_calories += cals
+                    total_protein += prot
+                    total_carbs += carb
+                    total_fats += fat
+                    meal_calories += cals
+
+                alt_items.append({
+                    "food_id": food_db.id,
+                    "food_name": food_db.name,
+                    "quantity_grams": item_input.grams,
+                    "calories": round(cals),
+                    "protein": round(prot, 1),
+                    "carbs": round(carb, 1),
+                    "fats": round(fat, 1)
+                })
+            
+            meal_alts.append({"items": alt_items})
+
+        meals_data.append({
+            "name": meal_input.name,
+            "calories": round(meal_calories),
+            "alternatives": meal_alts
+        })
+
+    # دائمًا نوقف القديم ونخلي الجديد هو الفعّال تلقائيا (Approved & Active)
+    old_plans = db.query(NutritionPlan).filter(NutritionPlan.user_id == client_id).all()
+    for op in old_plans:
+        op.is_active = False
+
+    new_plan = NutritionPlan(
+        user_id=client_id,
+        goal="نظام من الأدمن",
+        daily_calories=round(total_calories),
+        total_protein=round(total_protein, 1),
+        total_carbs=round(total_carbs, 1),
+        total_fats=round(total_fats, 1),
+        admin_notes="تم إنشاء هذا النظام يدوياً من قبل الكابتن",
+        status="approved",
+        is_active=True
+    )
+    db.add(new_plan)
+    db.flush()
+
+    for m_data in meals_data:
+        full_data = json.dumps({
+            "meal_time": "",
+            "meal_role": "",
+            "alternatives": m_data["alternatives"]
+        }, ensure_ascii=False)
+
+        new_meal = Meal(
+            plan_id=new_plan.id,
+            name=m_data["name"],
+            items=full_data,
+            calories=m_data["calories"]
+        )
+        db.add(new_meal)
+
+    db.commit()
+    db.refresh(new_plan)
+
+    return {"message": "تم إنشاء النظام الغذائي بنجاح!", "plan_id": new_plan.id}
+
+
 
 # ── AI Nutrition Plans Management ──
 
