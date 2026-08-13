@@ -492,7 +492,8 @@ def delete_food_item(item_id: int, db: Session = Depends(get_db)):
 @router.get("/clients")
 def get_all_clients(db: Session = Depends(get_db)):
     """جلب كل العملاء مع تفاصيل بروفايلهم."""
-    users = db.query(User).filter(User.role == "user").all()
+    from sqlalchemy.orm import joinedload
+    users = db.query(User).options(joinedload(User.profile)).filter(User.role == "user").all()
     results = []
     for u in users:
         # Default mock values if profile doesn't exist yet
