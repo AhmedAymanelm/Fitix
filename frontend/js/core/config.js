@@ -221,15 +221,17 @@ async function loadGymSettings() {
     }
 
     // ── تحديث لوجو الجيم في الـ topbar ──
-    const topbarLogo = document.getElementById('topbarLogo');
-    if (topbarLogo) {
-      if (s.logo_url) {
-        topbarLogo.src = s.logo_url;
-        topbarLogo.style.display = 'block';
-      } else {
-        topbarLogo.style.display = 'none';
+    ['topbarLogo', 'loginTopbarLogo'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        if (s.logo_url) {
+          el.src = s.logo_url;
+          el.style.display = 'inline-block';
+        } else {
+          el.style.display = 'none';
+        }
       }
-    }
+    });
 
     // تحديث عنوان الصفحة
     document.title = (s.gym_name || 'Fitix') + ' — نظام إدارة الجيم';
