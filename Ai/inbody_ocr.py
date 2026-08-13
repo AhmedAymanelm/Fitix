@@ -4,8 +4,6 @@ from io import BytesIO
 from PIL import Image
 
 from Ai.prompts.inbody_prompt import get_inbody_prompt
-from Ai.mocks.inbody_mock import get_mock_inbody_data
-
 # Check if google-generativeai is available
 try:
     import google.generativeai as genai_sdk
@@ -17,14 +15,13 @@ except ImportError:
 def parse_inbody_image(image_bytes: bytes) -> dict:
     """
     Parses an InBody image using Gemini Flash and returns structured JSON.
-    If no GEMINI_API_KEY is found, returns mock data for demo purposes.
     """
     api_key = os.getenv("GEMINI_API_KEY")
     print(f"[AI] GEMINI_API_KEY set: {bool(api_key)}")
     print(f"[AI] google-generativeai available: {GENAI_AVAILABLE}")
 
     if not api_key or not GENAI_AVAILABLE:
-        return get_mock_inbody_data()
+        raise ValueError("تكامل الذكاء الاصطناعي غير متوفر. تأكد من إعداد GEMINI_API_KEY و google-generativeai.")
 
     # ── Real AI Integration ──
     try:
