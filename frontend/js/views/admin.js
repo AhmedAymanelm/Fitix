@@ -1256,24 +1256,10 @@ function renderLibraryPage() {
       <!-- Grid of exercises with thumbnails -->
       <div id="exListInModal" style="padding:14px 20px;overflow-y:auto;flex:1;"></div>
 
-      <!-- Sets/Reps row -->
-      <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);">
-        <p style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">ضبط التمرين المختار:</p>
-        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-          <div>
-            <label class="settings-label">السيتات</label>
-            <input id="exSets" class="settings-input" type="number" placeholder="4" min="1" max="30" style="width:80px;">
-          </div>
-          <div>
-            <label class="settings-label">التكرارات</label>
-            <input id="exReps" class="settings-input" placeholder="8-12" style="width:100px;">
-          </div>
-          <div style="flex:1;min-width:140px;">
-            <label class="settings-label">ملاحظة</label>
-            <input id="exNote" class="settings-input" placeholder="مثال: ركز على الشد">
-          </div>
-          <button class="btn btn-primary" onclick="confirmAddExToCategory()" style="flex-shrink:0;">إضافة ✓</button>
-        </div>
+      <!-- Action row -->
+      <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);display:flex;justify-content:space-between;align-items:center;">
+        <span id="selectedExCount" style="font-size:14px;font-weight:700;color:var(--text-dim);">لم يتم تحديد تمارين</span>
+        <button id="addExBtn" class="btn btn-primary" onclick="confirmAddExToCategory()" disabled>إضافة المحددة ✓</button>
       </div>
     </div>
   </div>
@@ -1387,23 +1373,21 @@ async function deleteCategoryConfirm(catId) {
 
 // ── Exercise Picker Modal ──────────────────────────────────────
 let _targetCatId = null;
-let _selectedExId = null;
+let _selectedExIds = new Set();
 
 function openAddExToCatModal(catId) {
   _targetCatId = catId;
-  _selectedExId = null;
+  _selectedExIds.clear();
   const cat = adminCategoriesCache.find(c => c.id === catId);
   document.getElementById('pickCatLabel').innerText = `القسم: ${cat?.name || ''}`;
   document.getElementById('exSearchInModal').value = '';
-  document.getElementById('exSets').value = '';
-  document.getElementById('exReps').value = '';
-  document.getElementById('exNote').value = '';
+  updateSelectedCountUI();
   renderExGridInModal(adminExercisesCache);
   document.getElementById('addExToCatModal').classList.add('show');
 }
 function closeAddExToCatModal() {
   document.getElementById('addExToCatModal').classList.remove('show');
-  _targetCatId = null; _selectedExId = null;
+  _targetCatId = null; _selectedExIds.clear();
 }
 
 function renderExGridInModal(exercises) {
@@ -1433,8 +1417,12 @@ function renderExGridInModal(exercises) {
       }
     }
 
+    const isSelected = _selectedExIds.has(ex.id);
+    const borderColor = isSelected ? 'var(--accent)' : 'var(--border)';
+    const bg = isSelected ? 'rgba(74,144,226,.15)' : 'var(--surface)';
+
     return `
-    <div id="exOpt-${ex.id}" onclick="selectExInModal(${ex.id})" style="flex: 1 1 calc(33.333% - 12px); min-width: 160px; max-width: 250px; border-radius:12px; overflow:hidden; border:2px solid var(--border); cursor:pointer; transition:.2s; background:var(--surface); display:flex; flex-direction:column;">
+    <div id="exOpt-${ex.id}" onclick="selectExInModal(${ex.id})" style="flex: 1 1 calc(33.333% - 12px); min-width: 160px; max-width: 250px; border-radius:12px; overflow:hidden; border:2px solid ${borderColor}; cursor:pointer; transition:.2s; background:${bg}; display:flex; flex-direction:column;">
       <div style="height:90px; background:var(--surface-3); overflow:hidden; position:relative; flex-shrink:0;">
         ${mediaHtml}
         <span style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.75);border-radius:4px;padding:2px 6px;font-size:10px;color:#fff;font-weight:700;">${ex.difficulty || 'عام'}</span>
@@ -1452,34 +1440,73 @@ function filterExInModal(query) {
   const filtered = adminExercisesCache.filter(ex =>
     ex.name.toLowerCase().includes(q) || ex.muscle_group.toLowerCase().includes(q));
   renderExGridInModal(filtered);
-  _selectedExId = null;
 }
 
 function selectExInModal(exId) {
-  _selectedExId = exId;
-  document.querySelectorAll('[id^="exOpt-"]').forEach(el => {
-    el.style.borderColor = 'var(--border)';
-    el.style.background = 'var(--surface)';
-  });
+  if (_selectedExIds.has(exId)) {
+    _selectedExIds.delete(exId);
+  } else {
+    _selectedExIds.add(exId);
+  }
+  
   const el = document.getElementById('exOpt-' + exId);
-  if (el) { el.style.borderColor = 'var(--accent)'; el.style.background = 'rgba(74,144,226,.15)'; }
+  if (el) {
+    if (_selectedExIds.has(exId)) {
+      el.style.borderColor = 'var(--accent)';
+      el.style.background = 'rgba(74,144,226,.15)';
+    } else {
+      el.style.borderColor = 'var(--border)';
+      el.style.background = 'var(--surface)';
+    }
+  }
+  updateSelectedCountUI();
+}
+
+function updateSelectedCountUI() {
+  const lbl = document.getElementById('selectedExCount');
+  const btn = document.getElementById('addExBtn');
+  if (lbl && btn) {
+    if (_selectedExIds.size === 0) {
+      lbl.innerText = 'لم يتم تحديد تمارين';
+      lbl.style.color = 'var(--text-dim)';
+      btn.disabled = true;
+      btn.innerText = 'إضافة المحددة ✓';
+    } else {
+      lbl.innerText = `تم تحديد ${_selectedExIds.size} تمرين`;
+      lbl.style.color = 'var(--accent)';
+      btn.disabled = false;
+      btn.innerText = `إضافة ${_selectedExIds.size} تمرين ✓`;
+    }
+  }
 }
 
 async function confirmAddExToCategory() {
-  if (!_selectedExId) return toast('اختار تمرين الأول!');
-  const data = {
-    exercise_id: _selectedExId,
-    sets: parseInt(document.getElementById('exSets').value) || null,
-    reps: document.getElementById('exReps').value.trim() || null,
-    notes: document.getElementById('exNote').value.trim() || null,
-  };
-  try {
-    await apiFetch('/admin/exercise-categories/' + _targetCatId + '/exercises', { method: 'POST', body: JSON.stringify(data) });
-    toast('✅ تم إضافة التمرين');
-    const savedCatId = _targetCatId;
-    closeAddExToCatModal();
-    await refreshCategoryCard(savedCatId);
-  } catch(e) { toast('❌ ' + e.message); }
+  if (_selectedExIds.size === 0) return toast('اختر تمرين واحد على الأقل!');
+  
+  const btn = document.getElementById('addExBtn');
+  if (btn) { btn.disabled = true; btn.innerText = 'جاري الإضافة...'; }
+  
+  let successCount = 0;
+  for (const exId of _selectedExIds) {
+    const data = {
+      exercise_id: exId,
+      sets: null,
+      reps: null,
+      notes: null,
+    };
+    try {
+      await apiFetch('/admin/exercise-categories/' + _targetCatId + '/exercises', { method: 'POST', body: JSON.stringify(data) });
+      successCount++;
+    } catch(e) {
+      console.error('Failed to add ex', exId, e);
+    }
+  }
+  
+  if (successCount > 0) toast(`✅ تم إضافة ${successCount} تمرين بنجاح`);
+  
+  const savedCatId = _targetCatId;
+  closeAddExToCatModal();
+  await refreshCategoryCard(savedCatId);
 }
 
 async function removeExFromCategory(catId, itemId) {
