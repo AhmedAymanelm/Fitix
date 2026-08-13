@@ -260,3 +260,6 @@ const API_BASE = (() => {
   return window.location.origin + '/api';
 })();
 
+const BASE_URL = API_BASE.replace(/\/api$/, '');
+const WS_BASE = BASE_URL.replace(/^http/, 'ws');
+

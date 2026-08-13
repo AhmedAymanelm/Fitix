@@ -150,7 +150,7 @@ function startCVTest() {
         if (user && user.id) clientId = user.id.toString();
     } catch(e) {}
     
-    cvWs = new WebSocket(`ws://localhost:8000/ws/cv/${clientId}`);
+    cvWs = new WebSocket(`${WS_BASE}/ws/cv/${clientId}`);
     
     cvWs.onopen = () => {
         cvWs.send(JSON.stringify({
@@ -256,7 +256,7 @@ async function uploadCVSessionVideo() {
     
     try {
         const token = localStorage.getItem('token');
-        const res = await fetch('http://localhost:8000/api/fitness_tests/upload', {
+        const res = await fetch(`${BASE_URL}/api/fitness_tests/upload`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`

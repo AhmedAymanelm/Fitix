@@ -170,7 +170,7 @@ window.openUserExerciseModal = function(exStr) {
   }
   
   const imgUrl = ex.video_url || ex.gif_url;
-  const mediaHtml = imgUrl ? `<img src="http://localhost:8000${imgUrl}" style="width:100%; max-height:280px; object-fit:contain; background:#fff; border-bottom:1px solid var(--border);">` : `<div style="width:100%; height:200px; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:40px;">🏋️</div>`;
+  const mediaHtml = imgUrl ? `<img src="${BASE_URL}${imgUrl}" style="width:100%; max-height:280px; object-fit:contain; background:#fff; border-bottom:1px solid var(--border);">` : `<div style="width:100%; height:200px; background:var(--surface-3); display:flex; align-items:center; justify-content:center; font-size:40px;">🏋️</div>`;
   
   let setRows = '';
   for (let i = 1; i <= ex.sets; i++) {

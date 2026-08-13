@@ -1017,7 +1017,7 @@ views['a-client-detail'] = async () => {
           <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:18px">
             <span>العدات: <b style="color:var(--primary)">${t.reps}</b></span>
           </div>
-          <a href="http://localhost:8000${t.video_url}" target="_blank" class="btn btn-primary" style="display:block; text-align:center; text-decoration:none">▶ مشاهدة الفيديو</a>
+          <a href="${BASE_URL}${t.video_url}" target="_blank" class="btn btn-primary" style="display:block; text-align:center; text-decoration:none">▶ مشاهدة الفيديو</a>
         </div>
       `).join('') : '<div style="color:var(--text-dim); padding:20px; text-align:center; grid-column:1/-1">لا توجد فيديوهات مسجلة للعميل حتى الآن.</div>'}
     </div>
