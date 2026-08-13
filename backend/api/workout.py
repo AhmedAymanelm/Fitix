@@ -89,10 +89,24 @@ def get_client_workouts(client_id: int, current_user: User = Depends(get_current
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Not authorized")
     
+    from sqlalchemy.orm import joinedload
     plans = db.query(WorkoutPlan).filter(WorkoutPlan.user_id == client_id).all()
+    
+    # Eager load exercises for all plans to avoid N+1 queries
+    # Since plans is small, we can just fetch all exercises for these plans in one query
+    plan_ids = [p.id for p in plans]
+    if plan_ids:
+        all_exercises = db.query(WorkoutExercise).options(joinedload(WorkoutExercise.exercise)).filter(WorkoutExercise.plan_id.in_(plan_ids)).order_by(WorkoutExercise.order).all()
+    else:
+        all_exercises = []
+        
+    ex_by_plan = {}
+    for ex in all_exercises:
+        ex_by_plan.setdefault(ex.plan_id, []).append(ex)
+        
     res = []
     for p in plans:
-        exercises = db.query(WorkoutExercise).filter(WorkoutExercise.plan_id == p.id).order_by(WorkoutExercise.order).all()
+        exercises = ex_by_plan.get(p.id, [])
         ex_list = []
         for ex in exercises:
             ex_list.append({

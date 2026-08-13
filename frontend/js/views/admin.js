@@ -595,27 +595,24 @@ views['a-clients'] = async () => {
 views['a-client-detail'] = async () => {
   if (!window.currentClientId) return `<div class="page-head"><h1>خطأ</h1><p>مفيش عميل محدد</p></div>`;
   
-  const c = await apiFetch('/admin/clients/' + window.currentClientId);
-  let history = [];
-  try {
-    history = await apiFetch('/inbody/client/' + window.currentClientId);
-  } catch(e) {
-    console.error(e);
-  }
+  const cid = window.currentClientId;
   
-  let activePlan = null;
-  try {
-    activePlan = await apiFetch('/admin/clients/' + window.currentClientId + '/active-plan');
-  } catch(e) {
-    console.error('No active plan found', e);
-  }
+  // Fetch everything in parallel to eliminate waterfall loading delays
+  const [cRes, historyRes, planRes, workRes, workHistRes] = await Promise.allSettled([
+    apiFetch('/admin/clients/' + cid),
+    apiFetch('/inbody/client/' + cid),
+    apiFetch('/admin/clients/' + cid + '/active-plan'),
+    apiFetch('/workouts/admin/client/' + cid),
+    apiFetch('/workouts/history/' + cid)
+  ]);
   
-  let workouts = [];
-  let workoutsHistory = [];
-  try {
-    workouts = await apiFetch('/workouts/admin/client/' + window.currentClientId);
-    workoutsHistory = await apiFetch('/workouts/history/' + window.currentClientId);
-  } catch(e) { console.error(e); }
+  const c = cRes.status === 'fulfilled' ? cRes.value : null;
+  if (!c) return `<div class="page-head"><h1>خطأ</h1><p>فشل في تحميل بيانات العميل</p></div>`;
+  
+  const history = historyRes.status === 'fulfilled' ? historyRes.value : [];
+  const activePlan = planRes.status === 'fulfilled' ? planRes.value : null;
+  const workouts = workRes.status === 'fulfilled' ? workRes.value : [];
+  const workoutsHistory = workHistRes.status === 'fulfilled' ? workHistRes.value : [];
   
   const todayDate = new Date();
   const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
