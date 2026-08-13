@@ -1,23 +1,23 @@
 :root{
-  /* ─── Deep Blue Theme ─── */
-  --bg:#070d1a;
-  --surface:#0e1628;
-  --surface-2:#152035;
-  --surface-3:#1c2b45;
-  --border:rgba(100,160,255,.12);
+  /* ─── Navy Blue Theme (Medium) ─── */
+  --bg:#141b2d;
+  --surface:#1c2540;
+  --surface-2:#222e4a;
+  --surface-3:#2a3860;
+  --border:rgba(130,170,255,.13);
   --text:#e8edf5;
-  --text-dim:#8a9ab8;
-  --text-dimmer:#4f6180;
+  --text-dim:#8fa4c8;
+  --text-dimmer:#55698a;
   /* accents */
-  --primary:#e63946;    /* red — IX color */
+  --primary:#e63946;
   --primary-glow:rgba(230,57,70,.35);
-  --accent:#3a86ff;     /* bright blue accent */
-  --accent-glow:rgba(58,134,255,.30);
+  --accent:#4a90e2;
+  --accent-glow:rgba(74,144,226,.28);
   --gold:#f4b942;
   --coral:#e63946;
   --steel:#5b9bd5;
   --cyan:#48cae4;
-  --lime:#c8ff3d;       /* kept for badges compatibility */
+  --lime:#c8ff3d;
   --radius:14px;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
@@ -39,9 +39,8 @@ body::before{
   content:"";
   position:fixed; inset:0;
   background:
-    radial-gradient(ellipse at 10% 0%, rgba(58,134,255,.12), transparent 50%),
-    radial-gradient(ellipse at 90% 100%, rgba(230,57,70,.08), transparent 50%),
-    radial-gradient(ellipse at 50% 50%, rgba(21,32,53,.5), transparent 70%);
+    radial-gradient(ellipse at 20% 0%, rgba(74,144,226,.09), transparent 55%),
+    radial-gradient(ellipse at 85% 100%, rgba(230,57,70,.06), transparent 50%);
   pointer-events:none;
   z-index:0;
 }
@@ -53,9 +52,9 @@ body::before{
   padding:0 24px;
   border-bottom:1px solid var(--border);
   position:sticky; top:0; z-index:1500;
-  background:rgba(7,13,26,.94);
+  background:rgba(20,27,45,.95);
   backdrop-filter:blur(14px);
-  box-shadow:0 1px 0 rgba(58,134,255,.12);
+  box-shadow:0 1px 0 rgba(74,144,226,.10);
 }
 
 .brand{display:flex; align-items:center; gap:10px; font-weight:900; font-size:20px; letter-spacing:.5px;}
