@@ -103,7 +103,7 @@ function renderSidebar(){
       </div>`).join('')}
   `;
 
-  // Add event listeners after rendering (more reliable than inline onclick on mobile)
+  // Add event listeners after rendering
   sidebarEl.querySelectorAll('.nav-item[data-nav]').forEach(item => {
     item.addEventListener('click', function(e) {
       e.preventDefault();
@@ -113,14 +113,6 @@ function renderSidebar(){
         goView(viewId);
       }
     });
-    // Touch support
-    item.addEventListener('touchend', function(e) {
-      e.preventDefault();
-      const viewId = this.dataset.nav;
-      if (viewId && typeof goView === 'function') {
-        goView(viewId);
-      }
-    }, { passive: false });
   });
 
   // رسم الـ bottom nav للموبايل
