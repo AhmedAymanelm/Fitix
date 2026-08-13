@@ -56,3 +56,13 @@ async def upload_cv_session(
     db.refresh(test)
     
     return {"message": "تم حفظ التمرين بنجاح", "test_id": test.id}
+
+@router.delete("/{test_id}", dependencies=[Depends(get_current_user)])
+def delete_fitness_test(test_id: int, db: Session = Depends(get_db)):
+    test = db.query(FitnessTest).filter(FitnessTest.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=404, detail="غير موجود")
+        
+    db.delete(test)
+    db.commit()
+    return {"message": "تم الحذف بنجاح"}

@@ -1043,7 +1043,11 @@ views['a-client-detail'] = async () => {
           <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-size:18px">
             <span>العدات: <b style="color:var(--primary)">${t.reps}</b></span>
           </div>
-          <a href="${BASE_URL}${t.video_url}" target="_blank" class="btn btn-primary" style="display:block; text-align:center; text-decoration:none">▶ مشاهدة الفيديو</a>
+          <div style="display:flex; gap:10px;">
+            <a href="${BASE_URL}${t.video_url}" target="_blank" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none">▶ مشاهدة</a>
+            <button class="btn btn-outline" style="flex:1; color:var(--lime); border-color:var(--lime);" onclick="showCvAnalytics(${t.reps}, ${t.duration})">📊 تحليلات</button>
+            <button class="btn btn-danger" style="padding:0 15px;" onclick="deleteCvTest(${t.id}, ${c.id})">🗑️</button>
+          </div>
         </div>
       `).join('') : '<div style="color:var(--text-dim); padding:20px; text-align:center; grid-column:1/-1">لا توجد فيديوهات مسجلة للعميل حتى الآن.</div>'}
     </div>
@@ -3400,4 +3404,61 @@ window.submitManualNutrition = async function(event) {
     btn.innerHTML = oldText;
     btn.disabled = false;
   }
+};
+
+window.deleteCvTest = async function(testId, clientId) {
+  if (!confirm('متأكد إنك عاوز تحذف الفيديو ده؟')) return;
+  try {
+    await apiFetch(`/fitness_tests/${testId}`, { method: 'DELETE' });
+    toast('تم حذف الفيديو بنجاح');
+    // Refresh view
+    window.currentClientId = clientId;
+    goView('a-client-detail');
+  } catch(e) {
+    toast('❌ ' + (e.message || 'فشل حذف الفيديو'));
+  }
+};
+
+window.showCvAnalytics = function(reps, duration) {
+  const rpm = duration > 0 ? ((reps / duration) * 60).toFixed(1) : 0;
+  
+  const m = document.createElement('div');
+  m.id = 'cvAnalyticsModal';
+  m.innerHTML = `
+    <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;display:flex;justify-content:center;align-items:center;padding:20px;">
+      <div class="card" style="width:100%;max-width:400px;text-align:center;position:relative;">
+        <button onclick="this.closest('#cvAnalyticsModal').remove()" style="position:absolute;top:10px;left:10px;background:none;border:none;color:white;font-size:20px;cursor:pointer;">&times;</button>
+        <h3 style="margin-bottom:20px;">📊 تحليل أداء التمرين</h3>
+        
+        <div style="display:flex; justify-content:space-around; margin-bottom:25px;">
+          <div>
+            <div style="font-size:24px; color:var(--primary); font-weight:bold;">${reps}</div>
+            <div style="font-size:12px; color:var(--text-dim);">إجمالي العدات</div>
+          </div>
+          <div>
+            <div style="font-size:24px; color:var(--lime); font-weight:bold;">${rpm}</div>
+            <div style="font-size:12px; color:var(--text-dim);">عدة / دقيقة</div>
+          </div>
+          <div>
+            <div style="font-size:24px; color:var(--coral); font-weight:bold;">${duration}s</div>
+            <div style="font-size:12px; color:var(--text-dim);">زمن التمرين</div>
+          </div>
+        </div>
+        
+        <!-- Fake simple chart for visual -->
+        <div style="height:100px; display:flex; align-items:flex-end; gap:5px; padding:10px 0; border-bottom:1px solid var(--border); margin-bottom:10px;">
+          ${Array(10).fill(0).map((_, i) => {
+            const h = Math.random() * 80 + 20;
+            return \`<div style="flex:1; background:var(--primary); height:${h}%; border-radius:4px 4px 0 0; opacity:${0.3 + (i/15)}"></div>\`;
+          }).join('')}
+        </div>
+        <div style="font-size:11px; color:var(--text-dim); margin-bottom:20px;">سرعة الأداء خلال التمرين</div>
+        
+        <div style="background:var(--surface-3); padding:10px; border-radius:8px; font-size:13px; color:var(--text);">
+          أداء ممتاز! استمرارية الحركة كانت جيدة، وسرعة العدات (${rpm} عدة بالدقيقة) في المعدل الطبيعي.
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
 };

@@ -564,7 +564,7 @@ views['u-cv'] = async () => {
       <span style="display: block; font-size: 12px; color: #fff;">العدات الصحيحة</span>
     </div>
     
-    <video id="cvVideo" style="display: none;"></video>
+    <video id="cvVideo" autoplay playsinline muted style="display: none;"></video>
     <canvas id="cvCanvas" width="640" height="480" style="width: 100%; height: 100%; object-fit: cover;"></canvas>
     
     <div style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 10; width: 90%; text-align: center;">
