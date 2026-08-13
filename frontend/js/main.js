@@ -56,6 +56,10 @@ function logout(){
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   document.getElementById('appShell').classList.remove('show');
+  
+  const hideStyle = document.getElementById('hideLoginWrap');
+  if(hideStyle) hideStyle.remove();
+  
   document.getElementById('loginWrap').style.display = 'block';
 }
 
