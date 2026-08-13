@@ -55,7 +55,10 @@ function setMode(m, forceView){
   } catch(e){}
   
   const initial = firstName ? firstName.charAt(0).toUpperCase() : (m==='admin' ? 'C' : 'A');
-  document.getElementById('topbarAvatar').textContent = initial;
+  const avatarEl = document.getElementById('topbarAvatar');
+  if (avatarEl) {
+    avatarEl.textContent = initial;
+  }
   
   const label = document.getElementById('topbarRoleLabel');
   if(label) {
