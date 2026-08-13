@@ -1254,7 +1254,7 @@ function renderLibraryPage() {
       </div>
 
       <!-- Grid of exercises with thumbnails -->
-      <div id="exListInModal" style="padding:14px 20px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;"></div>
+      <div id="exListInModal" style="padding:14px 20px;overflow-y:auto;flex:1;"></div>
 
       <!-- Sets/Reps row -->
       <div style="padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;background:var(--surface);">
@@ -1410,22 +1410,38 @@ function renderExGridInModal(exercises) {
   const container = document.getElementById('exListInModal');
   if (!container) return;
   if (exercises.length === 0) {
-    container.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-dim);">لا توجد نتائج</div>';
+    container.innerHTML = '<div style="width:100%;text-align:center;padding:40px;color:var(--text-dim);">لا توجد نتائج</div>';
     return;
   }
+  // Use a robust flex-wrap layout to prevent collapsing issues
+  container.style.display = 'flex';
+  container.style.flexWrap = 'wrap';
+  container.style.alignContent = 'flex-start';
+  container.style.gap = '12px';
+  container.style.minHeight = '0'; // important for nested flex scrolling
+
   container.innerHTML = exercises.slice(0, 80).map(ex => {
     const thumb = ex.gif_url || ex.video_url || '';
+    const isVideo = thumb.endsWith('.mp4') || thumb.endsWith('.webm');
+    
+    let mediaHtml = '<div style="height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;">🏋️</div>';
+    if (thumb) {
+      if (isVideo) {
+        mediaHtml = `<video src="${thumb}" style="width:100%;height:100%;object-fit:cover;" autoplay loop muted playsinline></video>`;
+      } else {
+        mediaHtml = `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" onerror="this.outerHTML='<div style=\\'height:90px;display:flex;align-items:center;justify-content:center;font-size:28px;\\'>🏋️</div>'">`;
+      }
+    }
+
     return `
-    <div id="exOpt-${ex.id}" onclick="selectExInModal(${ex.id})" style="border-radius:10px;overflow:hidden;border:2px solid var(--border);cursor:pointer;transition:.15s;background:var(--surface);">
-      <div style="height:80px;background:var(--surface-3);overflow:hidden;position:relative;">
-        ${thumb
-          ? `<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.innerHTML='<div style=\\'height:80px;display:flex;align-items:center;justify-content:center;font-size:24px;\\'>🏋️</div>'">`
-          : '<div style="height:80px;display:flex;align-items:center;justify-content:center;font-size:24px;">🏋️</div>'}
-        <span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.75);border-radius:4px;padding:1px 5px;font-size:9px;color:#ccc;">${ex.difficulty || ''}</span>
+    <div id="exOpt-${ex.id}" onclick="selectExInModal(${ex.id})" style="flex: 1 1 calc(33.333% - 12px); min-width: 160px; max-width: 250px; border-radius:12px; overflow:hidden; border:2px solid var(--border); cursor:pointer; transition:.2s; background:var(--surface); display:flex; flex-direction:column;">
+      <div style="height:90px; background:var(--surface-3); overflow:hidden; position:relative; flex-shrink:0;">
+        ${mediaHtml}
+        <span style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.75);border-radius:4px;padding:2px 6px;font-size:10px;color:#fff;font-weight:700;">${ex.difficulty || 'عام'}</span>
       </div>
-      <div style="padding:7px 8px;">
-        <div style="font-size:11px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ex.name}</div>
-        <div style="font-size:10px;color:var(--text-dim);margin-top:2px;">${ex.muscle_group}</div>
+      <div style="padding:10px; flex:1; display:flex; flex-direction:column; justify-content:center;">
+        <div style="font-size:13px; font-weight:800; line-height:1.4; color:var(--text);">${ex.name}</div>
+        <div style="font-size:11px; color:var(--text-dim); margin-top:4px;">${ex.muscle_group}</div>
       </div>
     </div>`;
   }).join('');
