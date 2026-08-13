@@ -71,14 +71,14 @@
       <p class="login-sub" id="loginSub">ادخل اليوزر والباسورد اللي دّهملك كابتنك</p>
       <div class="login-field">
         <label>اسم المستخدم</label>
-        <input id="loginUser" placeholder="مثال: omar.fit" value="omar.fit">
+        <input id="loginUser" placeholder="مثال: omar.fit" value="">
       </div>
       <div class="login-field">
         <label>كلمة السر</label>
-        <input id="loginPass" type="password" placeholder="••••••••" value="Fx1234!">
+        <input id="loginPass" type="password" placeholder="••••••••" value="">
       </div>
       <button class="btn btn-primary login-btn" onclick="doLogin()">دخول</button>
-      <div class="login-hint" id="loginHint">دي بيانات تجريبية معمولة مسبقاً للعرض — دوس "دخول" على طول</div>
+      <div class="login-hint" id="loginHint" style="display:none;"></div>
     </div>
   </div>
 </div>
@@ -364,7 +364,7 @@
 
 <script src="js/views/admin.js?v=58"></script>
 <script src="js/views/user.js?v=56"></script>
-<script src="js/main.js?v=53"></script>
+<script src="js/main.js?v=54"></script>
 <script>
   function updateLiveClock() {
     const now = new Date();

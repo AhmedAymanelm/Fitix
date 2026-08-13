@@ -4,17 +4,22 @@ function toggleLoginRole(){
   const t = document.getElementById('loginTitle');
   const sub = document.getElementById('loginSub');
   const u = document.getElementById('loginUser');
+  const p = document.getElementById('loginPass');
+  
+  u.value = '';
+  p.value = '';
+  
   if(btn.innerText.includes('ادمن')){
-    btn.innerText = ' أنا عميل';
+    btn.innerText = '🏋️ أنا عميل';
     t.innerText = 'تسجيل دخول المدرب (الادمن)';
     sub.innerText = 'ادخل لادارة الجيم الخاص بك';
-    u.value = 'اسم المستخدم';
+    u.placeholder = 'اسم مستخدم المدرب';
     document.getElementById('loginIcon').innerHTML = ic.dash;
   } else {
-    btn.innerText = 'أنا ادمن';
+    btn.innerText = '🧑‍💼 أنا ادمن';
     t.innerText = 'تسجيل دخول العميل';
     sub.innerText = 'ادخل اليوزر والباسورد اللي دّهملك كابتنك';
-    u.value = 'اسم الستخدم';
+    u.placeholder = 'مثال: omar.fit';
     document.getElementById('loginIcon').innerHTML = ic.users;
   }
 }
