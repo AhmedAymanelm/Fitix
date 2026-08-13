@@ -598,12 +598,13 @@ views['a-client-detail'] = async () => {
   const cid = window.currentClientId;
   
   // Fetch everything in parallel to eliminate waterfall loading delays
-  const [cRes, historyRes, planRes, workRes, workHistRes] = await Promise.allSettled([
+  const [cRes, historyRes, planRes, workRes, workHistRes, notifsRes] = await Promise.allSettled([
     apiFetch('/admin/clients/' + cid),
     apiFetch('/inbody/client/' + cid),
     apiFetch('/admin/clients/' + cid + '/active-plan'),
     apiFetch('/workouts/admin/client/' + cid),
-    apiFetch('/workouts/history/' + cid)
+    apiFetch('/workouts/history/' + cid),
+    apiFetch('/notifications/client/' + cid)
   ]);
   
   const c = cRes.status === 'fulfilled' ? cRes.value : null;
@@ -613,6 +614,7 @@ views['a-client-detail'] = async () => {
   const activePlan = planRes.status === 'fulfilled' ? planRes.value : null;
   const workouts = workRes.status === 'fulfilled' ? workRes.value : [];
   const workoutsHistory = workHistRes.status === 'fulfilled' ? workHistRes.value : [];
+  const clientNotifs = notifsRes.status === 'fulfilled' ? notifsRes.value : [];
   
   const todayDate = new Date();
   const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
@@ -965,18 +967,42 @@ views['a-client-detail'] = async () => {
 
   <!-- Appointment Reminder Tab -->
   <div class="tab-panel ${activeTab === 'treminder' ? 'active' : ''}" id="treminder">
-    <div class="section-title">📅 إرسال تذكير موعد</div>
-    <div class="card" style="max-width:500px">
-      <p style="color:var(--text-dim); font-size:13px; margin-bottom:16px">ابعت تذكير لـ ${c.full_name} بموعده القادم — هيوصله إشعار في الأبلكيشن.</p>
-      <div class="field" style="margin-bottom:12px">
-        <label>تاريخ الموعد</label>
-        <input type="date" id="reminderDate_${c.id}" class="settings-input" style="width:100%" min="${new Date().toISOString().split('T')[0]}">
+    <div class="grid grid-2">
+      <!-- Send Reminder Form -->
+      <div>
+        <div class="section-title">📅 إرسال تذكير موعد</div>
+        <div class="card">
+          <p style="color:var(--text-dim); font-size:13px; margin-bottom:16px">ابعت تذكير لـ ${c.full_name} بموعده القادم — هيوصله إشعار في الأبلكيشن.</p>
+          <div class="field" style="margin-bottom:12px">
+            <label>تاريخ الموعد</label>
+            <input type="date" id="reminderDate_${c.id}" class="settings-input" style="width:100%" min="${new Date().toISOString().split('T')[0]}">
+          </div>
+          <div class="field" style="margin-bottom:16px">
+            <label>ملاحظة للعميل (اختياري)</label>
+            <input type="text" id="reminderNote_${c.id}" placeholder="مثال: فضلاً الجهوز ١٠ دقائق قبل الموعد" class="settings-input" style="width:100%">
+          </div>
+          <button class="btn btn-primary" onclick="sendAppointmentReminder(${c.id})">📅 إرسال التذكير</button>
+        </div>
       </div>
-      <div class="field" style="margin-bottom:16px">
-        <label>ملاحظة للعميل (اختياري)</label>
-        <input type="text" id="reminderNote_${c.id}" placeholder="مثال: فضلاً الجهوز ١٠ دقائق قبل الموعد" class="settings-input" style="width:100%">
+      
+      <!-- Notification History -->
+      <div>
+        <div class="section-title">📜 سجل الإشعارات <span>حالة وصولها للعميل</span></div>
+        <div class="card" style="max-height: 400px; overflow-y: auto;">
+          ${clientNotifs.length > 0 ? clientNotifs.map(n => `
+            <div style="padding:12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start;">
+              <div>
+                <b style="color:var(--lime); display:block; margin-bottom:4px; font-size:14px;">${n.title}</b>
+                <span style="color:var(--text); font-size:13px;">${n.message}</span>
+                <div style="color:var(--text-dim); font-size:11px; margin-top:6px;">${n.created_at}</div>
+              </div>
+              <div style="font-size:12px; padding:4px 8px; border-radius:4px; ${n.is_read ? 'background:rgba(200,255,61,0.1); color:var(--lime);' : 'background:rgba(255,107,107,0.1); color:var(--coral);'}">
+                ${n.is_read ? '✅ العميل شافه' : '⏳ متبشفش لسه'}
+              </div>
+            </div>
+          `).join('') : '<p style="color:var(--text-dim); font-size:13px;">مفيش إشعارات اتبعتت للعميل ده قبل كده.</p>'}
+        </div>
       </div>
-      <button class="btn btn-primary" onclick="sendAppointmentReminder(${c.id})">📅 إرسال التذكير</button>
     </div>
   </div>
 

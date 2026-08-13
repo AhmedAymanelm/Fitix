@@ -230,3 +230,10 @@ def send_appointment_reminder(data: AppointmentReminderRequest, db: Session = De
     )
 
     return {"status": "ok", "message": f"تم إرسال تذكير الموعد للعميل {client.full_name}"}
+
+# ── GET: جلب إشعارات عميل محدد (للأدمن) ──
+@router.get("/client/{client_id}", response_model=List[NotificationResponse], dependencies=[Depends(get_current_admin)])
+def get_client_notifications(client_id: int, db: Session = Depends(get_db)):
+    """جلب قائمة الإشعارات المرسلة لعميل محدد مع حالة القراءة."""
+    notifs = db.query(Notification).filter(Notification.user_id == client_id).order_by(desc(Notification.created_at)).all()
+    return notifs
