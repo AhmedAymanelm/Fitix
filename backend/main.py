@@ -194,6 +194,27 @@ def seed_demo_data():
 
 seed_demo_data()
 
+import asyncio
+from api.notifications import run_daily_notification_check_logic
+
+@app.on_event("startup")
+async def start_background_jobs():
+    async def daily_notifications_job():
+        while True:
+            try:
+                db = SessionLocal()
+                created = run_daily_notification_check_logic(db)
+                db.close()
+                if created > 0:
+                    print(f"✅ Daily notification check ran: {created} notifications sent.")
+            except Exception as e:
+                print(f"⚠️ Error running daily notification check: {e}")
+            
+            # Run every 24 hours
+            await asyncio.sleep(86400)
+            
+    asyncio.create_task(daily_notifications_job())
+    print("✅ Background daily notification job started.")
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     uvicorn.run("main:app", host="0.0.0.0", port=port, reload=False)

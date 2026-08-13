@@ -139,13 +139,7 @@ def update_settings(payload: NotificationSettingsUpdate, db: Session = Depends(g
     return {"status": "ok", "message": "تم تحديث إعدادات الإشعارات"}
 
 
-# ── POST: فحص وإرسال إشعارات المواعيد والاشتراكات (يُستدعى يوميًا) ──
-@router.post("/run-daily-check", dependencies=[Depends(get_current_admin)])
-def run_daily_notification_check(db: Session = Depends(get_db)):
-    """
-    يفحص المواعيد القادمة وتجديد الاشتراكات ويُنشئ إشعارات.
-    يُستدعى من Admin يدويًا أو من scheduler خارجي.
-    """
+def run_daily_notification_check_logic(db: Session):
     settings = db.query(NotificationSettings).first()
     appt_days = settings.appointment_reminder_days if settings else 1
     sub_days = settings.subscription_reminder_days if settings else 3
@@ -177,7 +171,6 @@ def run_daily_notification_check(db: Session = Depends(get_db)):
                     "⏰ اشتراكك قرب ينتهي",
                     f"نذكرك أن مدة اشتراكك هتنتهي يوم {end_str}. يسعدنا أن تكون معانا مرة تانية! 💪"
                 )
-                # إشعار للأدمن كمان
                 admin = db.query(User).filter(User.role == "admin").first()
                 if admin:
                     create_notification(
@@ -188,6 +181,16 @@ def run_daily_notification_check(db: Session = Depends(get_db)):
                     )
                 created += 2
 
+    return created
+
+# ── POST: فحص وإرسال إشعارات المواعيد والاشتراكات (يُستدعى يوميًا) ──
+@router.post("/run-daily-check", dependencies=[Depends(get_current_admin)])
+def run_daily_notification_check(db: Session = Depends(get_db)):
+    """
+    يفحص المواعيد القادمة وتجديد الاشتراكات ويُنشئ إشعارات.
+    يُستدعى من Admin يدويًا أو من scheduler خارجي.
+    """
+    created = run_daily_notification_check_logic(db)
     return {"status": "ok", "notifications_created": created}
 
 
