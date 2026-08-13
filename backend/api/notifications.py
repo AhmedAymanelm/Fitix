@@ -14,7 +14,7 @@ from models.notification import Notification, NotificationSettings
 from models.client_profile import ClientProfile
 from api.deps import get_current_user, get_current_admin
 
-router = APIRouter(prefix="/notifications", tags=["Notifications"])
+router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
 # ── Schemas ──
