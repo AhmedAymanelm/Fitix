@@ -3417,7 +3417,7 @@ window.submitManualNutrition = async function(event) {
 };
 
 window.deleteCvTest = async function(testId, clientId) {
-  if (!confirm('متأكد إنك عاوز تحذف الفيديو ده؟')) return;
+  if (!(await appConfirm('متأكد إنك عاوز تحذف الفيديو ده؟'))) return;
   try {
     await apiFetch(`/fitness_tests/${testId}`, { method: 'DELETE' });
     toast('تم حذف الفيديو بنجاح');
