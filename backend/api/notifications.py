@@ -232,8 +232,19 @@ def send_appointment_reminder(data: AppointmentReminderRequest, db: Session = De
     return {"status": "ok", "message": f"تم إرسال تذكير الموعد للعميل {client.full_name}"}
 
 # ── GET: جلب إشعارات عميل محدد (للأدمن) ──
-@router.get("/client/{client_id}", response_model=List[NotificationResponse], dependencies=[Depends(get_current_admin)])
+@router.get("/client/{client_id}", dependencies=[Depends(get_current_admin)])
 def get_client_notifications(client_id: int, db: Session = Depends(get_db)):
     """جلب قائمة الإشعارات المرسلة لعميل محدد مع حالة القراءة."""
-    notifs = db.query(Notification).filter(Notification.user_id == client_id).order_by(desc(Notification.created_at)).all()
-    return notifs
+    notifs = db.query(Notification).filter(Notification.user_id == client_id).order_by(Notification.created_at.desc()).all()
+    return [
+        {
+            "id": n.id,
+            "type": n.type,
+            "title": n.title,
+            "message": n.message,
+            "is_read": n.is_read,
+            "created_at": n.created_at.strftime("%Y-%m-%d %H:%M") if n.created_at else "",
+            "read_at": n.read_at.strftime("%Y-%m-%d %H:%M") if n.read_at else None
+        }
+        for n in notifs
+    ]
