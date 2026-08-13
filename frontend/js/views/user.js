@@ -373,8 +373,13 @@ function renderFlowUI() {
         <div style="text-align:center; color:var(--text-dim); font-size:14px; margin-bottom:5px;">وقت الأداء المتبقي</div>
         <div id="flowTimer" style="font-size:48px; font-weight:bold; text-align:center; color:var(--primary); font-family:monospace; margin-bottom:15px;">00:00</div>
         
-        <div style="text-align:center; margin-bottom:20px; font-size:16px; font-weight:bold; color:var(--text);">
-            الوزن: ${ex.weight || 'عادي'} | العدات: ${ex.reps}
+        <div style="text-align:center; margin-bottom:15px; font-size:16px; font-weight:bold; color:var(--text);">
+            الوزن المطلوب: ${ex.weight || 'عادي'} | العدات: ${ex.reps}
+        </div>
+        
+        <div style="margin-bottom:20px;">
+            <label style="display:block; text-align:center; color:var(--text-dim); margin-bottom:8px; font-size:14px;">الوزن الفعلي اللي شيلته (اختياري)</label>
+            <input type="number" id="loggedWeightInput" placeholder="كجم" style="width:100%; text-align:center; font-size:18px; padding:12px; border-radius:12px; background:var(--surface-3); border:1px solid var(--border); color:white;">
         </div>
         
         <div style="display:flex; flex-direction:column; gap:10px;">
@@ -399,16 +404,25 @@ window.handlePhaseEnd = function(isAutoCompleted) {
   const ex = window.currentWorkoutData[exFlow.exIndex];
   
   if (exFlow.phase === 'exercise') {
-    const state = window.currentWorkoutState || JSON.parse(localStorage.getItem('workoutState') || '{"completed_sets":{}, "partial_sets":{}}');
+    const weightInput = document.getElementById('loggedWeightInput');
+    const loggedWeight = weightInput ? weightInput.value.trim() : '';
+
+    const state = window.currentWorkoutState || JSON.parse(localStorage.getItem('workoutState') || '{"completed_sets":{}, "partial_sets":{}, "logged_weights":{}}');
     if (!state.completed_sets) state.completed_sets = {};
     if (!state.partial_sets) state.partial_sets = {};
+    if (!state.logged_weights) state.logged_weights = {};
+    
     if (!state.completed_sets[ex.id]) state.completed_sets[ex.id] = [];
     if (!state.partial_sets[ex.id]) state.partial_sets[ex.id] = [];
+    if (!state.logged_weights[ex.id]) state.logged_weights[ex.id] = {};
 
     // Manual or Auto completion in exercise phase are both treated as perfect sets.
     // The timer is just a stopwatch for reps.
     if (!state.completed_sets[ex.id].includes(exFlow.currentSet)) {
         state.completed_sets[ex.id].push(exFlow.currentSet);
+        if (loggedWeight) {
+            state.logged_weights[ex.id][exFlow.currentSet] = loggedWeight;
+        }
         localStorage.setItem('workoutState', JSON.stringify(state));
         window.currentWorkoutState = state;
         submitWorkoutLog(false, true); // Auto-sync
