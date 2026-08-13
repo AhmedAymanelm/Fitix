@@ -84,12 +84,15 @@ function renderSidebar(){
   const groupLabel = mode==='admin' ? 'إدارة السيستم' : 'حسابي';
   const gs = window._gymSettings || { gym_name: 'FORM Fitness', primary_color: '#c8ff3d', logo_url: null };
 
-  // الـ logo في الـ sidebar (كبيرة، في المنتصف) — بدل الترحيب
-  const sidebarLogoHtml = gs.logo_url
-    ? `<div style="padding:20px 16px 16px; text-align:center; border-bottom:1px solid var(--border); margin-bottom:8px;">
-        <img src="${gs.logo_url}" style="width:100px;height:100px;object-fit:contain;border-radius:16px;display:block;margin:0 auto;">
-       </div>`
-    : '';
+  // الـ brand في الـ sidebar (صورة صغيرة + الاسم)
+  const sidebarLogoHtml = `
+    <div style="padding:16px 20px 16px; border-bottom:1px solid var(--border); margin-bottom:12px; display:flex; align-items:center; gap:10px;">
+      ${gs.logo_url ? `<img src="${gs.logo_url}" style="height:32px; width:32px; object-fit:contain; border-radius:8px;">` : ''}
+      <span class="brand-name" dir="ltr" style="font-size:24px; line-height:1;">
+        <span class="brand-fit">FIT</span><span class="brand-ix">IX</span>
+      </span>
+    </div>
+  `;
 
   const sidebarEl = document.getElementById('sidebar');
   sidebarEl.innerHTML = `
