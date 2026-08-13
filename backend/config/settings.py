@@ -6,13 +6,10 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
 
-DATABASE_DIR = BASE_DIR.parent / "database"
-DATABASE_DIR.mkdir(exist_ok=True)
-
 # ── Database ──
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    f"sqlite:///{DATABASE_DIR / 'form_fitness.db'}"
+    "postgresql://neondb_owner:npg_btz3H2WLgeov@ep-frosty-sky-aykqm68z-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 )
 
 # ── JWT ──
