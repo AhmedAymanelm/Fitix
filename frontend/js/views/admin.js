@@ -2564,10 +2564,50 @@ function toggleExerciseInModal(cb) {
     if (btn) btn.innerText = `إضافة (${selectedExercisesInModal.size}) تمرين`;
 }
 
+window.selectModalCategory = function(catId) {
+    selectedModalCategory = catId;
+    // Update pill styles
+    const catsContainer = document.getElementById('exModalCategories');
+    if (catsContainer) {
+        catsContainer.querySelectorAll('button').forEach(b => {
+            b.classList.remove('btn-primary');
+            b.classList.add('btn-ghost');
+        });
+        if (catId === 'all') {
+            catsContainer.firstElementChild.classList.add('btn-primary');
+            catsContainer.firstElementChild.classList.remove('btn-ghost');
+        } else {
+            const btn = document.getElementById('btn-mod-cat-' + catId);
+            if (btn) {
+                btn.classList.add('btn-primary');
+                btn.classList.remove('btn-ghost');
+            }
+        }
+    }
+    const query = document.getElementById('exModalSearch') ? document.getElementById('exModalSearch').value : '';
+    filterModalExercises(query);
+}
+
 window.filterModalExercises = function(query) {
     const list = document.getElementById('exModalList');
     if (!list) return;
-    let filtered = allExercisesForAdmin;
+    
+    let sourceList = allExercisesForAdmin;
+    if (selectedModalCategory !== 'all') {
+        const cat = adminCategoriesCache.find(c => c.id === selectedModalCategory);
+        if (cat) {
+            // map from category item structure to flat exercise structure
+            sourceList = cat.exercises.map(ex => ({
+                id: ex.exercise_id,
+                name: ex.name,
+                muscle_group: ex.muscle_group,
+                gif_url: ex.gif_url,
+                video_url: ex.video_url
+            }));
+        }
+    }
+    
+    let filtered = sourceList;
     if (query) {
         query = query.toLowerCase();
         filtered = filtered.filter(e => e.name.toLowerCase().includes(query) || e.muscle_group.toLowerCase().includes(query));
@@ -2580,7 +2620,7 @@ window.filterModalExercises = function(query) {
         return (aSel === bSel) ? 0 : aSel ? -1 : 1;
     });
 
-    const limited = filtered.slice(0, 50);
+    const limited = filtered.slice(0, 100);
     list.innerHTML = limited.map(e => {
         const imgUrl = e.video_url || e.gif_url;
         const bg = imgUrl ? `background: url('${imgUrl}') center/cover no-repeat;` : 'background:#222;';
@@ -2593,7 +2633,7 @@ window.filterModalExercises = function(query) {
         `;
     }).join('');
     
-    if (filtered.length > 50) {
+    if (filtered.length > 100) {
         list.innerHTML += `<div style="text-align:center; padding:10px; color:var(--text-dim); font-size:12px;">ابحث لعرض باقي التمارين...</div>`;
     }
 }
@@ -2607,9 +2647,15 @@ window.forceEnglishNumbers = function(input) {
     input.value = val;
 }
 
+let selectedModalCategory = 'all';
+
 async function openAddExerciseModal(planId) {
     await loadAllExercises();
+    if (!adminCategoriesCache || adminCategoriesCache.length === 0) {
+        adminCategoriesCache = await apiFetch('/admin/exercise-categories');
+    }
     selectedExercisesInModal.clear();
+    selectedModalCategory = 'all';
     
     let m = document.getElementById('adminExModal');
     if (!m) {
@@ -2621,7 +2667,18 @@ async function openAddExerciseModal(planId) {
     <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;">
       <div style="background:var(--surface-2);padding:20px;border-radius:12px;width:90%;max-width:450px;border:1px solid var(--border)">
         <h3 style="margin-bottom:15px">إضافة تمارين للخطة</h3>
-        <input type="text" id="exModalSearch" placeholder="بحث عن تمرين (مثال: صدر، ظهر)..." class="settings-input" style="width:100%; margin-bottom:10px; min-width:0; background:var(--bg);" onkeyup="filterModalExercises(this.value)">
+        
+        <!-- Category Pills -->
+        <div id="exModalCategories" style="display:flex; gap:8px; overflow-x:auto; padding-bottom:10px; margin-bottom:10px; scrollbar-width:none;">
+          <button class="btn btn-sm ${selectedModalCategory === 'all' ? 'btn-primary' : 'btn-ghost'}" onclick="selectModalCategory('all')" style="white-space:nowrap; border:1px solid var(--border);">الكل</button>
+          ${adminCategoriesCache.map(c => `
+            <button class="btn btn-sm btn-ghost" onclick="selectModalCategory(${c.id})" id="btn-mod-cat-${c.id}" style="white-space:nowrap; border:1px solid var(--border);">
+              ${c.icon || ''} ${c.name}
+            </button>
+          `).join('')}
+        </div>
+        
+        <input type="text" id="exModalSearch" placeholder="بحث عن تمرين..." class="settings-input" style="width:100%; margin-bottom:10px; min-width:0; background:var(--bg);" onkeyup="filterModalExercises(this.value)">
         <div id="exModalList" style="max-height:220px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:15px; display:flex; flex-direction:column; gap:2px;">
         </div>
         <div class="grid grid-2" style="gap:10px; margin-bottom:10px">
