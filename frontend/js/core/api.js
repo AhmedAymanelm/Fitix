@@ -142,13 +142,19 @@ async function goView(id){
     return;
   }
 
-  // Clean spinner loader instead of skeleton for smoother transitions
-  content.innerHTML = `
-    <div style="display:flex; justify-content:center; align-items:center; height:60vh; flex-direction:column; gap:15px;">
-      <div style="width:40px; height:40px; border:4px solid var(--surface-3); border-top-color:var(--primary); border-radius:50%; animation:spin 0.8s linear infinite;"></div>
-      <div style="color:var(--text-dim); font-size:14px; font-weight:600;">جاري التحميل...</div>
-      <style>@keyframes spin { 100% { transform: rotate(360deg); } }</style>
-    </div>`;
+  // Subtle top loading bar instead of full page spinner
+  let loader = document.getElementById('top-loader');
+  if (!loader) {
+    loader = document.createElement('div');
+    loader.id = 'top-loader';
+    loader.style.cssText = 'position:fixed; top:0; left:0; width:0; height:3px; background:var(--primary); z-index:999999; transition: width 0.4s ease, opacity 0.3s;';
+    document.body.appendChild(loader);
+  }
+  
+  // Start loading animation
+  loader.style.opacity = '1';
+  loader.style.width = '30%';
+  setTimeout(() => { if (loader.style.opacity === '1') loader.style.width = '70%'; }, 200);
 
   
   try {
@@ -158,6 +164,13 @@ async function goView(id){
     content.innerHTML = `<p style="color:var(--coral);padding:20px;text-align:left;font-size:1rem;font-weight:bold;white-space:pre-wrap;direction:ltr;background:var(--surface-2);border-radius:8px;margin:20px;">❌ ${e.message}</p>`;
     console.error(e);
   }
+  
+  // Finish and hide loader
+  loader.style.width = '100%';
+  setTimeout(() => {
+    loader.style.opacity = '0';
+    setTimeout(() => { loader.style.width = '0'; }, 300);
+  }, 200);
   
   // Scroll للأعلى (مع مراعاة الـ mobile nav)
   window.scrollTo({top:0, behavior:'smooth'});
