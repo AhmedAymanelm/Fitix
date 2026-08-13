@@ -1404,7 +1404,7 @@ function renderExGridInModal(exercises) {
   container.style.gap = '12px';
   container.style.minHeight = '0'; // important for nested flex scrolling
 
-  container.innerHTML = exercises.slice(0, 80).map(ex => {
+  container.innerHTML = exercises.map(ex => {
     const thumb = ex.gif_url || ex.video_url || '';
     const isVideo = thumb.endsWith('.mp4') || thumb.endsWith('.webm');
     
