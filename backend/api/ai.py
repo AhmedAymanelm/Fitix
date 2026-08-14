@@ -20,11 +20,29 @@ class ChatRequest(BaseModel):
 router = APIRouter()
 
 @router.post("/assistant-chat")
-def assistant_chat(request: ChatRequest, admin=Depends(get_current_admin)):
+def assistant_chat(request: ChatRequest, admin=Depends(get_current_admin), db: Session = Depends(get_db)):
     """
     محادثة مع المساعد الذكي (للكباتن).
     """
-    response_text = generate_assistant_response(request.message)
+    # Fetch all active clients
+    clients = db.query(User).filter(User.role == "user", User.is_active == True).all()
+    context_lines = []
+    for c in clients:
+        p = c.profile
+        if p:
+            goal = p.goal or "غير محدد"
+            weight = p.weight or "غير محدد"
+            height = p.height or "غير محدد"
+            injury = "نعم" if p.has_injury else "لا"
+            injury_det = f" (التفاصيل: {p.injury_details})" if p.has_injury and p.injury_details else ""
+            notes = p.notes or "لا يوجد"
+            context_lines.append(f"- العميل: {c.full_name} | هدفه: {goal} | وزنه: {weight} كجم | طوله: {height} سم | إصابات: {injury}{injury_det} | ملاحظات: {notes}")
+        else:
+            context_lines.append(f"- العميل: {c.full_name} | (لا يوجد بروفايل)")
+            
+    context = "\n".join(context_lines)
+    
+    response_text = generate_assistant_response(request.message, context)
     return {"reply": response_text}
 
 @router.post("/inbody-ocr")
