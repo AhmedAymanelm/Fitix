@@ -1042,7 +1042,7 @@ views['a-client-detail'] = async () => {
   <div class="tab-panel ${activeTab === 't4' ? 'active' : ''}" id="t4">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px">
       <div class="section-title" style="margin:0">النظام الغذائي <span>الخطة الحالية</span></div>
-      <button class="btn btn-outline" style="padding:5px 10px; font-size:12px; color:var(--lime); border-color:var(--lime)" onclick="openManualNutritionModal(${c.id})">🛠️ إنشاء نظام يدوياً</button>
+      <button onclick="openManualNutritionModal(${c.id})" style="background:rgba(200,255,61,0.1); border:1px solid var(--lime); color:var(--lime); padding:6px 12px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:0.2s;">🛠️ إنشاء نظام يدوياً</button>
     </div>
     ${nutritionHtml}
 
