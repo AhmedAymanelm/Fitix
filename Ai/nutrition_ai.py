@@ -22,8 +22,10 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
     print(f"[AI] GEMINI_API_KEY set: {bool(api_key)}")
     print(f"[AI] google-generativeai available: {GENAI_AVAILABLE}")
 
-    if not api_key or not GENAI_AVAILABLE:
-        raise ValueError("تكامل الذكاء الاصطناعي غير متوفر. تأكد من إعداد GEMINI_API_KEY و google-generativeai.")
+    if not GENAI_AVAILABLE:
+        raise ValueError("مكتبة الذكاء الاصطناعي (google-generativeai) غير مثبتة.")
+    if not api_key:
+        raise ValueError("مفتاح API الخاص بـ Gemini غير متوفر. يرجى إضافة GEMINI_API_KEY في إعدادات البيئة (Railway Variables).")
 
     # Build the food catalog string
     food_catalog = "\n".join([
