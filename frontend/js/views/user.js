@@ -1665,56 +1665,49 @@ views['u-nutrition'] = async () => {
 
     ${nutritionPhoto && nutritionPhoto.url ? `
     <div style="margin-bottom:16px;position:relative;display:inline-block;width:100%;">
-      <img src="${nutritionPhoto.url}" style="width:100%;border-radius:12px;border:2px solid var(--lime);object-fit:contain;display:block">
+      <img src="${nutritionPhoto.url}" id="clientNutImageToPdf" crossorigin="anonymous" style="width:100%;border-radius:12px;border:2px solid var(--lime);object-fit:contain;display:block">
       <div style="font-size:11px;color:var(--text-dim);margin-top:6px">تاريخ الرفع: ${nutritionPhoto.date || '—'}</div>
+      <button class="btn btn-outline" style="margin-top:16px; width:100%; border-color:var(--lime); color:var(--lime)" onclick="downloadClientNutPhotoAsPdf()">📥 تحميل الصورة كـ PDF</button>
     </div>` : '<div style="color:var(--text-dim);font-size:13px;margin-bottom:12px">لم يقم الكابتن برفع صورة للنظام الغذائي بعد.</div>'}
   </div>
 
   `;
 };
 
-function previewNutritionPhoto(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('nutritionPhotoPreview').innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:200px;border-radius:10px;border:2px dashed var(--primary);margin-top:8px">`;
-    document.getElementById('uploadNutritionPhotoBtn').style.display = 'block';
-  };
-  reader.readAsDataURL(file);
-}
-
-async function uploadNutritionPhoto() {
-  const input = document.getElementById('nutritionPhotoInput');
-  if (!input.files[0]) return;
-  const btn = document.getElementById('uploadNutritionPhotoBtn');
-  btn.disabled = true;
-  btn.innerText = 'جاري الرفع...';
-  try {
-    const fd = new FormData();
-    fd.append('photo', input.files[0]);
-    const token = localStorage.getItem('token');
-    const res = await fetch(API_BASE + '/workouts/my-nutrition-photo', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + token },
-      body: fd
+window.downloadClientNutPhotoAsPdf = function() {
+    const imgEl = document.getElementById('clientNutImageToPdf');
+    if (!imgEl) return;
+    
+    // Create a container for PDF with proper background and sizing
+    const container = document.createElement('div');
+    container.style.padding = '20px';
+    container.style.background = '#12141d';
+    container.style.textAlign = 'center';
+    
+    const title = document.createElement('h2');
+    title.innerText = 'الخطة الغذائية (Fitix)';
+    title.style.color = '#c8ff3d';
+    title.style.fontFamily = 'Cairo, sans-serif';
+    title.style.marginBottom = '20px';
+    
+    const imgClone = imgEl.cloneNode();
+    imgClone.style.maxWidth = '100%';
+    imgClone.style.borderRadius = '12px';
+    
+    container.appendChild(title);
+    container.appendChild(imgClone);
+    
+    const opt = {
+        margin:       10,
+        filename:     'Fitix_Nutrition_Plan.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    
+    toast('⏳ جاري تحضير الـ PDF...');
+    html2pdf().set(opt).from(container).save().then(() => {
+        toast('✅ تم التحميل بنجاح');
     });
-    if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'فشل الرفع'); }
-    toast('✅ تم رفع صورتك بنجاح! سيراها الكابتن.');
-    setTimeout(() => goView('u-nutrition'), 800);
-  } catch(e) {
-    toast('❌ ' + e.message);
-    btn.disabled = false;
-    btn.innerText = '📤 رفع الصورة';
-  }
-}
-
-async function deleteNutritionPhoto() {
-  if (!(await appConfirm('هل تريد مسح الصورة؟'))) return;
-  try {
-    await apiFetch('/workouts/my-nutrition-photo', { method: 'DELETE' });
-    toast('✅ تم مسح الصورة');
-    setTimeout(() => goView('u-nutrition'), 600);
-  } catch(e) { toast('❌ ' + e.message); }
-}
+};
 
