@@ -178,8 +178,9 @@ body::before{
 .btn-ghost{background:var(--surface-2); color:var(--text); border:1px solid var(--border);}
 .btn-ghost:hover{background:var(--surface-3);}
 .btn-sm{padding:7px 13px; font-size:12px; border-radius:8px;}
+.btn-outline{background:transparent; border:1px solid currentColor;}
+.btn-outline:hover{background:rgba(255,255,255,0.05);}
 .btn:disabled{opacity:.5; cursor:not-allowed;}
-
 .badge{font-size:11px; font-weight:800; padding:3px 10px; border-radius:999px;}
 .badge.pending{background:rgba(244,185,66,.15); color:var(--gold);}
 .badge.approved{background:rgba(58,134,255,.15); color:var(--accent);}
