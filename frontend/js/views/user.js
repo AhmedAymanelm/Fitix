@@ -1413,7 +1413,7 @@ views['u-chat'] = async () => {
     <div class="ai-chat-head" style="background:linear-gradient(135deg,var(--surface-2),var(--surface-3))">
       <div class="ai-icon" style="background:var(--lime);color:#000;font-weight:900">C</div>
       <div>
-        <div style="font-weight:700">كابتن الجيم</div>
+        <div style="font-weight:700">الكابتن</div>
       </div>
     </div>
     <div class="ai-chat-body chat-messages-area" id="uChatBody" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:8px">

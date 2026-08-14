@@ -45,7 +45,11 @@ async function doLogin(){
     document.getElementById('loginWrap').style.display = 'none';
     document.getElementById('appShell').classList.add('show');
     setMode(data.user.role);
-    toast(`أهلاً بيك يا ${data.user.full_name}`);
+    if (data.user.role === 'admin') {
+      toast('أهلاً بيك يا كابتن 👋');
+    } else {
+      toast(`أهلاً بيك يا ${data.user.full_name}`);
+    }
     startNotifPolling();
     loadGymSettings();
     
