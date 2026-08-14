@@ -2630,8 +2630,11 @@ async function sendAiChat(){
     el.classList.add('assistant');
     
     if (res.reply) {
-      // replace newlines with <br>
-      el.innerHTML = res.reply.replace(/\n/g, '<br>');
+      if (window.marked) {
+        el.innerHTML = marked.parse(res.reply);
+      } else {
+        el.innerHTML = res.reply.replace(/\n/g, '<br>');
+      }
     } else {
       el.innerHTML = 'حدث خطأ غير معروف.';
     }
