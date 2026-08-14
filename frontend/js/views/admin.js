@@ -2620,7 +2620,7 @@ async function sendAiChat(){
   body.scrollTop = body.scrollHeight;
   
   try {
-    const res = await apiFetch('/api/ai/assistant-chat', {
+    const res = await apiFetch('/ai/assistant-chat', {
       method: 'POST',
       body: JSON.stringify({ message: txt })
     });
