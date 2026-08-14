@@ -30,6 +30,9 @@ img, svg, video, canvas {
 }
 
 @media (max-width: 768px) {
+  .hide-mobile {
+    display: none !important;
+  }
   body {
     padding-bottom: 0;
     overflow-x: hidden;

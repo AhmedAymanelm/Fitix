@@ -1045,6 +1045,25 @@ views['a-client-detail'] = async () => {
       <button class="btn btn-outline" style="padding:5px 10px; font-size:12px; color:var(--lime); border-color:var(--lime)" onclick="openManualNutritionModal(${c.id})">🛠️ إنشاء نظام يدوياً</button>
     </div>
     ${nutritionHtml}
+
+    <div class="section-title" style="margin-top:30px;">صورة النظام الغذائي <span>التي يراها العميل</span></div>
+    ${clientNutPhoto && clientNutPhoto.url ? `
+    <div class="card" style="margin-bottom:20px; text-align:center;">
+        <img src="${clientNutPhoto.url}" style="max-width:100%; border-radius:12px; border:1px solid var(--border);">
+        <div style="margin-top:10px; color:var(--text-dim); font-size:12px;">تاريخ الرفع: ${clientNutPhoto.date}</div>
+    </div>
+    ` : `<p style="color:var(--text-dim); margin-bottom:15px; font-size:14px;">لا توجد صورة مرفوعة.</p>`}
+    
+    <div class="card" style="padding:20px">
+        <h4 style="color:var(--text); margin-bottom:16px;">رفع صورة جديدة للنظام</h4>
+        <div style="margin-bottom:16px">
+          <label style="display:flex; align-items:center; gap:8px; background:var(--surface-3); border:2px dashed var(--border); border-radius:12px; padding:20px; cursor:pointer; justify-content:center; color:var(--text-dim); font-size:14px">
+            📷 اختر صورة
+            <input type="file" id="adminNutPhotoInput" accept="image/*" style="display:none" onchange="const f=this.files[0]; if(f) this.parentElement.innerHTML='📷 '+f.name">
+          </label>
+        </div>
+        <button class="btn btn-primary" style="width:100%;" onclick="adminUploadNutritionPhoto(${c.id})">رفع الصورة للعميل</button>
+    </div>
   </div>
 
   <div class="tab-panel ${activeTab === 'tvideo' ? 'active' : ''}" id="tvideo">
@@ -3087,8 +3106,46 @@ async function submitUploadExercise(e) {
     }
 }
 
+// ── رفع صورة النظام الغذائي للعميل ──
+window.adminUploadNutritionPhoto = async function(clientId) {
+    const input = document.getElementById('adminNutPhotoInput');
+    if (!input.files || !input.files[0]) {
+        toast('❌ لازم تختار صورة الأول');
+        return;
+    }
+    const btn = event.currentTarget;
+    const oldText = btn.innerHTML;
+    btn.innerHTML = 'جاري الرفع...';
+    btn.disabled = true;
+
+    try {
+        const formData = new FormData();
+        formData.append('photo', input.files[0]);
+
+        const token = localStorage.getItem('token');
+        const res = await fetch(API_BASE + '/admin/nutrition-photo/' + clientId, {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + token },
+            body: formData
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.detail || 'حصلت مشكلة في الرفع');
+        }
+
+        toast('✅ تم رفع صورة النظام الغذائي للعميل بنجاح');
+        adminClientView(clientId, 't4'); // Refresh the tab
+    } catch(e) {
+        toast('❌ ' + e.message);
+        btn.disabled = false;
+        btn.innerHTML = oldText;
+    }
+};
+
 // ── طباعة تقرير العميل ──
 window.printClientReport = async function(clientId) {
+
     const btn = event.currentTarget;
     const oldText = btn.innerHTML;
     btn.innerHTML = 'جاري التحضير...';
@@ -3097,6 +3154,7 @@ window.printClientReport = async function(clientId) {
         const clients = await apiFetch('/admin/clients');
         const client = clients.find(x => x.id == clientId);
         if(!client) throw new Error('Client not found');
+
         
         const plans = await apiFetch(`/admin/plans/${clientId}`);
         const activePlan = plans.find(p => p.status === 'active');
@@ -3469,7 +3527,13 @@ window.buildManualNutritionModal = function() {
       
       <button class="btn btn-outline" style="width:100%; margin-bottom:20px; border-style:dashed; color:var(--text)" onclick="window.addManualMeal()">+ إضافة وجبة جديدة</button>
       
+      <div style="margin-bottom:20px;">
+        <label style="color:var(--text-dim); font-size:14px; margin-bottom:5px; display:block">مدة النظام الغذائي (بالأيام)</label>
+        <input type="number" id="manualPlanDuration" class="settings-input" style="width:100%" value="30">
+      </div>
+
       <button class="btn btn-primary" style="width:100%" onclick="window.submitManualNutrition(event)">💾 حفظ الخطة واعتمادها</button>
+
     </div>
   `;
 };
@@ -3509,6 +3573,9 @@ window.submitManualNutrition = async function(event) {
   }
   
   if (payload.meals.length === 0) return alert('يجب إضافة وجبات وأصناف صحيحة.');
+
+  const durationInput = document.getElementById('manualPlanDuration');
+  payload.duration_days = durationInput ? parseInt(durationInput.value) || 30 : 30;
 
   const btn = event.target;
   const oldText = btn.innerHTML;

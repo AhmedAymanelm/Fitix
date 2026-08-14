@@ -1383,14 +1383,20 @@ async function deleteMyPhoto(slot) {
 
 
 /* ---- User Settings ---- */
-views['u-settings'] = () => `
+views['u-settings'] = () => {
+  const userStr = localStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : {};
+  return `
   <div class="page-head"><h1>إعداداتي</h1><p>تعديل الحساب والإشعارات</p></div>
   <div class="card" style="text-align:center;padding:50px 20px;color:var(--text-dim)">
     <div style="font-size:40px;margin-bottom:15px">⚙️</div>
-    <h3 style="margin-bottom:10px;color:var(--text)">الإعدادات</h3>
-    <p>تعديل الإعدادات الشخصية هيكون متاح قريباً.</p>
+    <h3 style="margin-bottom:10px;color:var(--text)">البيانات الشخصية</h3>
+    <p><strong>الاسم:</strong> ${user.full_name || 'غير متوفر'}</p>
+    <p><strong>الهاتف:</strong> ${user.phone || 'غير مسجل'}</p>
+    <p style="margin-top:20px;">تعديل الإعدادات الشخصية هيكون متاح قريباً.</p>
   </div>
 `;
+}
 
 /* ---- User Chat (With Admin) ---- */
 views['u-chat'] = async () => {

@@ -308,9 +308,24 @@ async def create_exercise(
     db: Session = Depends(get_db)
 ):
     """إضافة تمرين جديد برفع ملف"""
-    contents = await file.read()
-    res = cloudinary.uploader.upload(contents, folder="exercises", resource_type="auto")
-    url = res.get("secure_url")
+    import tempfile
+    import os
+    
+    # Save to temp file to handle large video uploads gracefully
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        contents = await file.read()
+        tmp.write(contents)
+        tmp_path = tmp.name
+
+    try:
+        # Use upload_large for better handling of large video files
+        res = cloudinary.uploader.upload_large(tmp_path, folder="exercises", resource_type="auto")
+        url = res.get("secure_url")
+    except Exception as e:
+        os.remove(tmp_path)
+        raise HTTPException(status_code=500, detail=f"فشل في رفع الملف: {str(e)}")
+        
+    os.remove(tmp_path)
     
     ex = Exercise(
         name=name, 
@@ -666,6 +681,37 @@ def get_client_active_plan(client_id: int, db: Session = Depends(get_db)):
         "created_at": plan.created_at.strftime("%Y-%m-%d") if plan.created_at else ""
     }
 
+@router.post("/nutrition-photo/{user_id}")
+async def admin_upload_nutrition_photo(
+    user_id: int,
+    photo: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """رفع صورة النظام الغذائي للعميل بواسطة الأدمن"""
+    if not photo or not photo.filename:
+        raise HTTPException(status_code=400, detail="يجب إرفاق صورة")
+    
+    contents = await photo.read()
+    res = cloudinary.uploader.upload(
+        contents,
+        folder=f"nutrition_photos/{user_id}",
+        public_id=f"{user_id}_nutrition_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+        resource_type="image"
+    )
+    url = res.get("secure_url", "")
+    
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user_id).first()
+    if not profile:
+        profile = ClientProfile(user_id=user_id)
+        db.add(profile)
+    
+    profile.nutrition_photo_url = url
+    profile.nutrition_photo_date = datetime.utcnow()
+    db.commit()
+    
+    return {"status": "ok", "url": url}
+
+
 
 class PasswordUpdate(BaseModel):
     new_password: str = Field(..., min_length=4)
@@ -766,6 +812,7 @@ class ManualMeal(BaseModel):
 
 class ManualPlanCreate(BaseModel):
     meals: List[ManualMeal]
+    duration_days: Optional[int] = 30
 
 @router.post("/plans/manual/{client_id}")
 def create_manual_nutrition_plan(client_id: int, payload: ManualPlanCreate, db: Session = Depends(get_db)):
@@ -832,6 +879,11 @@ def create_manual_nutrition_plan(client_id: int, payload: ManualPlanCreate, db: 
     for op in old_plans:
         op.is_active = False
 
+    from datetime import timedelta
+    
+    start_date = datetime.utcnow()
+    end_date = start_date + timedelta(days=payload.duration_days)
+    
     new_plan = NutritionPlan(
         user_id=client_id,
         goal="نظام من الأدمن",
@@ -841,7 +893,9 @@ def create_manual_nutrition_plan(client_id: int, payload: ManualPlanCreate, db: 
         total_fats=round(total_fats, 1),
         admin_notes="تم إنشاء هذا النظام يدوياً من قبل الكابتن",
         status="approved",
-        is_active=True
+        is_active=True,
+        start_date=start_date,
+        end_date=end_date
     )
     db.add(new_plan)
     db.flush()

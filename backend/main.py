@@ -38,7 +38,9 @@ def upgrade_db_schema():
             "workout_day_calories INTEGER",
             "rest_day_calories INTEGER",
             "admin_notes VARCHAR(2000)",
-            "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+            "updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+            "start_date TIMESTAMP",
+            "end_date TIMESTAMP"
         ]
         for col in cols_nutrition:
             try:

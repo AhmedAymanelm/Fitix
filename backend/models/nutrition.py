@@ -16,6 +16,10 @@ class NutritionPlan(Base):
     status: Mapped[str] = mapped_column(String(20), default="pending")
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
+    # تواريخ النظام الغذائي
+    start_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    end_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
     # ─── الأرقام الغذائية (للأدمن فقط) ───
     daily_calories: Mapped[int] = mapped_column(Integer, nullable=False)
     total_protein: Mapped[float | None] = mapped_column(nullable=True)   # جرام بروتين يومي

@@ -181,6 +181,37 @@ def run_daily_notification_check_logic(db: Session):
                     )
                 created += 2
 
+    # ── فحص انتهاء النظام الغذائي ──
+    from models.nutrition import NutritionPlan
+    diet_days = 2
+    active_plans = db.query(NutritionPlan).filter(NutritionPlan.is_active == True, NutritionPlan.end_date != None).all()
+    for plan in active_plans:
+        days_remaining = (plan.end_date - now).days
+        if 0 <= days_remaining <= diet_days:
+            existing = db.query(Notification).filter(
+                Notification.user_id == plan.user_id,
+                Notification.type == "diet_expiry",
+                Notification.created_at >= now.replace(hour=0, minute=0, second=0)
+            ).first()
+            if not existing:
+                end_str = plan.end_date.strftime("%Y-%m-%d")
+                create_notification(
+                    db, plan.user_id,
+                    "diet_expiry",
+                    "🥗 نظامك الغذائي قرب ينتهي",
+                    f"نذكرك أن النظام الغذائي الخاص بك هينتهي يوم {end_str}. كلم الكابتن لتجديد الخطة!"
+                )
+                admin = db.query(User).filter(User.role == "admin").first()
+                if admin:
+                    client = db.query(User).filter(User.id == plan.user_id).first()
+                    create_notification(
+                        db, admin.id,
+                        "diet_expiry",
+                        f"🥗 النظام الغذائي لـ {client.full_name} قرب ينتهي",
+                        f"النظام الغذائي للعميل {client.full_name} هينتهي يوم {end_str} ({days_remaining} يوم متبقي)"
+                    )
+                created += 2
+
     return created
 
 # ── POST: فحص وإرسال إشعارات المواعيد والاشتراكات (يُستدعى يوميًا) ──
