@@ -724,7 +724,7 @@ body::before{
 .ai-bubble.assistant li { margin-bottom:5px; }
 .ai-bubble.assistant p { margin:0 0 10px 0; }
 .ai-bubble.assistant p:last-child { margin-bottom:0; }
-.ai-bubble.assistant strong { color:var(--accent-glow, #4da1ff); }
+.ai-bubble.assistant strong { color:var(--gold, #f4b942); }
 .ai-chat-input{display:flex; gap:8px; padding:12px; border-top:1px solid var(--border); background:var(--surface-2);}
 .ai-chat-input input{flex:1; background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:10px 14px; color:var(--text); font-family:'Tajawal'; font-size:13px;}
 .ai-chat-input input:focus{outline:none; border-color:var(--accent);}
