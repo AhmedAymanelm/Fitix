@@ -1,17 +1,9 @@
 import os
 import json
+import requests
 from typing import List
 
 from Ai.prompts.nutrition_prompt import get_nutrition_prompt
-
-
-# Check if google-generativeai is available
-try:
-    import google.generativeai as genai_sdk
-    GENAI_AVAILABLE = True
-except ImportError:
-    GENAI_AVAILABLE = False
-
 
 def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
     """
@@ -20,10 +12,7 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
     """
     api_key = os.getenv("GEMINI_API_KEY")
     print(f"[AI] GEMINI_API_KEY set: {bool(api_key)}")
-    print(f"[AI] google-generativeai available: {GENAI_AVAILABLE}")
 
-    if not GENAI_AVAILABLE:
-        raise ValueError("مكتبة الذكاء الاصطناعي (google-generativeai) غير مثبتة.")
     if not api_key:
         raise ValueError("مفتاح API الخاص بـ Gemini غير متوفر. يرجى إضافة GEMINI_API_KEY في إعدادات البيئة (Railway Variables).")
 
@@ -35,60 +24,53 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
 
     prompt = get_nutrition_prompt(client_data, food_catalog)
 
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    
+    payload = {
+        "contents": [
+            {
+                "role": "user",
+                "parts": [{"text": prompt}]
+            }
+        ],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.7
+        }
+    }
+    
+    headers = {"Content-Type": "application/json"}
+    
     try:
-        genai_sdk.configure(api_key=api_key)
-        print(f"[AI] Calling Gemini API, food items: {len(food_items)}")
-
-        models_to_try = [
-            "gemini-2.5-flash",
-            "gemini-2.0-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro",
-            "gemini-1.5-flash-8b",
-            "gemini-1.0-pro"
-        ]
-
-        response = None
-        errors = []
-
-        for model_name in models_to_try:
+        print(f"[AI] Calling Gemini REST API, food items: {len(food_items)}")
+        resp = requests.post(url, json=payload, headers=headers)
+        
+        if resp.status_code == 200:
+            data = resp.json()
             try:
-                print(f"[AI] Trying model {model_name}...")
-                model = genai_sdk.GenerativeModel(model_name)
-                response = model.generate_content(
-                    prompt,
-                    generation_config=genai_sdk.types.GenerationConfig(
-                        response_mime_type="application/json",
-                        temperature=0.7
-                    )
-                )
-                print(f"[AI] Model {model_name} succeeded!")
-                break
-            except Exception as e:
-                errors.append(f"{model_name}: {str(e)}")
-                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
-                    raise ValueError("تم تجاوز الحد المسموح به للطلبات (Rate Limit). يرجى المحاولة لاحقاً.")
-                print(f"[AI] Model {model_name} failed: {str(e)}")
-                continue
+                raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+            except Exception:
+                raise ValueError(f"خطأ في تحليل استجابة الذكاء الاصطناعي: {json.dumps(data)}")
+                
+            # Clean up any potential markdown formatting
+            raw_text = raw_text.strip()
+            if raw_text.startswith("```json"):
+                raw_text = raw_text[7:]
+            if raw_text.startswith("```"):
+                raw_text = raw_text[3:]
+            if raw_text.endswith("```"):
+                raw_text = raw_text[:-3]
 
-        if not response:
-            error_details = " | ".join(errors)
-            raise ValueError(f"فشل توليد النظام الغذائي. الأخطاء: {error_details}")
-
-        print(f"[AI] Gemini response received, length: {len(response.text)}")
-
-        # Clean up any potential markdown formatting
-        raw_text = response.text.strip()
-        if raw_text.startswith("```json"):
-            raw_text = raw_text[7:]
-        if raw_text.startswith("```"):
-            raw_text = raw_text[3:]
-        if raw_text.endswith("```"):
-            raw_text = raw_text[:-3]
-
-        result = json.loads(raw_text.strip())
-        return result
-
+            result = json.loads(raw_text.strip())
+            return result
+        else:
+            if resp.status_code == 429:
+                raise ValueError("تم تجاوز الحد المسموح به للطلبات (Rate Limit). يرجى المحاولة لاحقاً.")
+            
+            error_text = resp.text
+            print(f"[AI] Gemini API Error: {resp.status_code} - {error_text}")
+            raise ValueError(f"فشل توليد النظام الغذائي بسبب السيرفر ({resp.status_code}): {error_text}")
+            
     except Exception as e:
-        print(f"[AI] Gemini API error: {type(e).__name__}: {e}")
-        raise RuntimeError(f"Gemini API فشل: {type(e).__name__}: {e}")
+        print(f"[AI] Gemini REST API error: {type(e).__name__}: {e}")
+        raise ValueError(f"فشل توليد النظام الغذائي. الخطأ: {str(e)}")
