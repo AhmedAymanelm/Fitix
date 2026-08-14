@@ -2606,7 +2606,7 @@ views['a-aichat'] = ()=>`
   </div>
 `;
 
-function sendAiChat(){
+async function sendAiChat(){
   const inp = document.getElementById('aiChatInput');
   const txt = inp.value.trim();
   if(!txt) return;
@@ -2619,19 +2619,30 @@ function sendAiChat(){
   body.insertAdjacentHTML('beforeend', `<div class="ai-bubble thinking" id="${tid}">جاري التفكير...</div>`);
   body.scrollTop = body.scrollHeight;
   
-  setTimeout(()=>{
+  try {
+    const res = await apiFetch('/api/ai/assistant-chat', {
+      method: 'POST',
+      body: JSON.stringify({ message: txt })
+    });
+    
     const el = document.getElementById(tid);
     el.classList.remove('thinking');
     el.classList.add('assistant');
-    if(txt.includes('اشتراك')){
-      el.innerHTML = 'عندك 3 عملاء اشتراكهم هيخلص الأسبوع ده:<br><br>1. سارة إبراهيم (الخميس)<br>2. كريم سعيد (الجمعة)<br>3. ياسمين طارق (السبت)<br><br>تحب أبعتلهم رسائل تذكير تلقائية؟';
-    } else if(txt.includes('عمر')){
-      el.innerHTML = 'عمر حسن أداؤه ممتاز جداً! 📈<br><br>- نسبة الالتزام: 95%<br>- فقد 2 كجم دهون وزاد 0.8 كجم عضل في آخر 30 يوم.<br>- آخر تمرين: اليوم (سكوات 40ث).<br><br>أنصحك ترفع له السعرات شوية عشان يحافظ على الكتلة العضلية.';
+    
+    if (res.reply) {
+      // replace newlines with <br>
+      el.innerHTML = res.reply.replace(/\n/g, '<br>');
     } else {
-      el.innerHTML = 'كلام جميل جداً. لو احتجت أي تحليل للبيانات أو مساعدة في تصميم الأنظمة أنا موجود في أي وقت.';
+      el.innerHTML = 'حدث خطأ غير معروف.';
     }
-    body.scrollTop = body.scrollHeight;
-  }, 1500);
+  } catch (err) {
+    const el = document.getElementById(tid);
+    el.classList.remove('thinking');
+    el.classList.add('assistant');
+    el.innerHTML = 'عذراً، حدث خطأ أثناء الاتصال بالمساعد الذكي.';
+  }
+  
+  body.scrollTop = body.scrollHeight;
 }
 
 

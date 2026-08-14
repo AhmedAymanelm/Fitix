@@ -11,8 +11,21 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from Ai.inbody_ocr import parse_inbody_image
 from Ai.nutrition_ai import generate_nutrition_plan
+from Ai.assistant_ai import generate_assistant_response
+from pydantic import BaseModel
+
+class ChatRequest(BaseModel):
+    message: str
 
 router = APIRouter()
+
+@router.post("/assistant-chat")
+def assistant_chat(request: ChatRequest, admin=Depends(get_current_admin)):
+    """
+    محادثة مع المساعد الذكي (للكباتن).
+    """
+    response_text = generate_assistant_response(request.message)
+    return {"reply": response_text}
 
 @router.post("/inbody-ocr")
 async def extract_inbody_data(file: UploadFile = File(...), db: Session = Depends(get_db)):
