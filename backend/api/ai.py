@@ -29,16 +29,24 @@ def assistant_chat(request: ChatRequest, admin=Depends(get_current_admin), db: S
     context_lines = []
     for c in clients:
         p = c.profile
-        if p:
-            goal = p.goal or "غير محدد"
-            weight = p.weight or "غير محدد"
-            height = p.height or "غير محدد"
-            injury = "نعم" if p.has_injury else "لا"
-            injury_det = f" (التفاصيل: {p.injury_details})" if p.has_injury and p.injury_details else ""
-            notes = p.notes or "لا يوجد"
-            context_lines.append(f"- العميل: {c.full_name} | هدفه: {goal} | وزنه: {weight} كجم | طوله: {height} سم | إصابات: {injury}{injury_det} | ملاحظات: {notes}")
+        
+        # Get latest InBody reading
+        latest_inbody = db.query(InBodyReading).filter(InBodyReading.user_id == c.id).order_by(InBodyReading.reading_date.desc()).first()
+        
+        if p or latest_inbody:
+            goal = p.goal if p and p.goal else "غير محدد"
+            weight = latest_inbody.weight if latest_inbody else (p.weight if p and p.weight else "غير محدد")
+            height = p.height if p and p.height else "غير محدد"
+            body_fat = f" ونسبة دهون {latest_inbody.body_fat}%" if latest_inbody else ""
+            muscle = f" وعضلات {latest_inbody.muscle_mass} كجم" if latest_inbody else ""
+            
+            injury = "نعم" if p and p.has_injury else "لا"
+            injury_det = f" (التفاصيل: {p.injury_details})" if p and p.has_injury and p.injury_details else ""
+            notes = p.notes if p and p.notes else "لا يوجد"
+            
+            context_lines.append(f"- العميل: {c.full_name} | هدفه: {goal} | وزنه: {weight} كجم{body_fat}{muscle} | طوله: {height} سم | إصابات: {injury}{injury_det} | ملاحظات: {notes}")
         else:
-            context_lines.append(f"- العميل: {c.full_name} | (لا يوجد بروفايل)")
+            context_lines.append(f"- العميل: {c.full_name} | (لا يوجد بروفايل أو قراءات InBody)")
             
     context = "\n".join(context_lines)
     
