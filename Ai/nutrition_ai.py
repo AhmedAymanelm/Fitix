@@ -41,13 +41,11 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
 
         models_to_try = [
             "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro",
-            "gemini-pro",
+            "gemini-2.0-flash",
         ]
 
         response = None
-        last_error = None
+        errors = []
 
         for model_name in models_to_try:
             try:
@@ -63,14 +61,15 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
                 print(f"[AI] Model {model_name} succeeded!")
                 break
             except Exception as e:
-                last_error = str(e)
-                if "429" in last_error or "RESOURCE_EXHAUSTED" in last_error:
-                    raise
-                print(f"[AI] Model {model_name} failed: {last_error}")
+                errors.append(f"{model_name}: {str(e)}")
+                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                    raise ValueError("تم تجاوز الحد المسموح به للطلبات (Rate Limit). يرجى المحاولة لاحقاً.")
+                print(f"[AI] Model {model_name} failed: {str(e)}")
                 continue
 
         if not response:
-            raise ValueError(f"فشل توليد النظام الغذائي. آخر خطأ: {last_error}")
+            error_details = " | ".join(errors)
+            raise ValueError(f"فشل توليد النظام الغذائي. الأخطاء: {error_details}")
 
         print(f"[AI] Gemini response received, length: {len(response.text)}")
 
