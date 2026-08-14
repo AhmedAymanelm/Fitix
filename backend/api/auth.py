@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from config.database import get_db
 from models.user import User
-from schemas.auth import UserCreate, UserLogin, UserResponse, Token, MessageResponse
+from schemas.auth import UserCreate, UserLogin, UserResponse, Token, MessageResponse, UpdateCredentials
 from api.deps import hash_password, verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
@@ -63,4 +63,20 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     """جيب بيانات اليوزر الحالي (محمي بالتوكن)."""
-    return UserResponse.model_validate(current_user)
+    return current_user
+
+@router.put("/update-credentials")
+def update_credentials(payload: UpdateCredentials, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if payload.new_username:
+        existing = db.query(User).filter(User.username == payload.new_username, User.id != current_user.id).first()
+        if existing:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="اسم المستخدم موجود بالفعل")
+        current_user.username = payload.new_username
+    
+    if payload.new_password:
+        current_user.hashed_password = hash_password(payload.new_password)
+        
+    if payload.new_username or payload.new_password:
+        db.commit()
+        
+    return {"message": "تم تحديث الحساب بنجاح", "new_username": current_user.username}

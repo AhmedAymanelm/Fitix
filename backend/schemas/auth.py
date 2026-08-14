@@ -8,6 +8,10 @@ class UserLogin(BaseModel):
     username: str = Field(..., min_length=2, max_length=50, examples=["omar.fit"])
     password: str = Field(..., max_length=128, examples=["Fx1234!"])
 
+class UpdateCredentials(BaseModel):
+    new_username: str | None = Field(None, min_length=2, max_length=50)
+    new_password: str | None = Field(None, min_length=4, max_length=128)
+
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=2, max_length=50, examples=["ahmed.fit"])

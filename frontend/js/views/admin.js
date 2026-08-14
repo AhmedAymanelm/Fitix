@@ -2414,12 +2414,12 @@ views['a-settings'] = () => {
         <input type="color" id="gymColorInput" value="${gs.primary_color}"
           style="width:44px;height:36px;border:none;background:none;cursor:pointer;border-radius:8px"
           oninput="document.documentElement.style.setProperty('--primary', this.value); document.getElementById('colorHexDisplay').textContent = this.value">
-        <code id="colorHexDisplay" style="font-size:13px;color:var(--text-dim)">${gs.primary_color}</code>
+        <code id="colorHexDisplay" style="font-size:13px;color:var(--text-dim); margin-left:8px">${gs.primary_color}</code>
         <!-- Presets -->
-        <div style="display:flex;gap:4px">
-          ${['#c8ff3d','#00d4ff','#ff6b35','#a855f7','#22d3ee','#f43f5e','#84cc16'].map(c =>
-            `<div onclick="document.getElementById('gymColorInput').value='${c}';document.documentElement.style.setProperty('--primary','${c}');document.getElementById('colorHexDisplay').textContent='${c}'"
-              style="width:22px;height:22px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${c===gs.primary_color?'#fff':'transparent'};flex-shrink:0"></div>`
+        <div style="display:flex;gap:6px; margin-right:12px; flex-wrap:wrap">
+          ${['#c8ff3d','#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4'].map(c =>
+            `<div onclick="document.getElementById('gymColorInput').value='${c}';document.documentElement.style.setProperty('--primary','${c}');document.getElementById('colorHexDisplay').textContent='${c}'; this.parentElement.querySelectorAll('div').forEach(el=>el.style.borderColor='transparent'); this.style.borderColor='#fff';"
+              style="width:28px;height:28px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${c===gs.primary_color?'#fff':'transparent'};flex-shrink:0; transition:0.2s" onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='none'"></div>`
           ).join('')}
         </div>
       </div>
@@ -2440,6 +2440,24 @@ views['a-settings'] = () => {
     </div>
     <button class="btn btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 حفظ مفتاح الـ API</button>
   </div>
+  <!-- Admin Account Settings -->
+  <div class="notif-settings-card" style="margin-bottom:20px; border-left:4px solid var(--accent)">
+    <h4>⚙️ إعدادات حسابك (الأدمن)</h4>
+    <p style="font-size:12px;color:var(--text-dim);margin-bottom:16px">تغيير اسم المستخدم (Username) وكلمة المرور للدخول للوحة التحكم.</p>
+    
+    <div class="notif-settings-row" style="margin-bottom:12px; display:block">
+      <label style="display:block; margin-bottom:8px">👤 اسم المستخدم الجديد</label>
+      <input type="text" id="adminNewUsername" class="settings-input" placeholder="سيبها فاضية لو مش عايز تغيرها" style="width:100%; margin:0;">
+    </div>
+    
+    <div class="notif-settings-row" style="margin-bottom:12px; display:block; position:relative">
+      <label style="display:block; margin-bottom:8px">🔑 كلمة المرور الجديدة</label>
+      <input type="text" id="adminNewPassword" class="settings-input" placeholder="سيبها فاضية لو مش عايز تغيرها" style="width:100%; margin:0; font-family:monospace">
+      <div style="font-size:11px; color:var(--coral); margin-top:6px">ملاحظة: الباسورد ظاهر عشان تتأكد منه قبل الحفظ. لو نسيته هتحتاج تغيره من قاعدة البيانات!</div>
+    </div>
+    <button class="btn btn-primary" onclick="updateAdminCredentials()">💾 تحديث بيانات الدخول</button>
+  </div>
+
 
   <!-- Notification Settings -->
   <div class="notif-settings-card" style="margin-bottom:20px">
@@ -2515,8 +2533,47 @@ async function saveAiSettings() {
   } finally {
     btn.innerText = '💾 حفظ مفتاح الـ API';
   }
+  }
 }
 
+window.updateAdminCredentials = async function() {
+  const newUsername = document.getElementById('adminNewUsername').value.trim();
+  const newPassword = document.getElementById('adminNewPassword').value.trim();
+  
+  if (!newUsername && !newPassword) {
+    toast('يرجى إدخال اسم مستخدم أو كلمة مرور جديدة!');
+    return;
+  }
+  
+  const btn = event.currentTarget;
+  const oldText = btn.innerText;
+  btn.innerText = 'جاري الحفظ...';
+  btn.disabled = true;
+  
+  try {
+    const res = await apiFetch('/auth/update-credentials', {
+      method: 'PUT',
+      body: JSON.stringify({
+        new_username: newUsername || null,
+        new_password: newPassword || null
+      })
+    });
+    
+    toast('✅ تم تحديث بيانات الدخول بنجاح! احتفظ بها.');
+    document.getElementById('adminNewUsername').value = '';
+    document.getElementById('adminNewPassword').value = '';
+    
+    // Update local storage username if it was changed
+    if (newUsername) {
+      localStorage.setItem('username', newUsername);
+    }
+  } catch(e) {
+    toast('❌ ' + e.message);
+  } finally {
+    btn.innerText = oldText;
+    btn.disabled = false;
+  }
+};
 async function saveGymBranding() {
   const name = document.getElementById('gymNameInput').value.trim();
   const color = document.getElementById('gymColorInput').value;
