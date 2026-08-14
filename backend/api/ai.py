@@ -112,17 +112,18 @@ def generate_plan(data: dict, db: Session = Depends(get_db), admin=Depends(get_c
 
     # ── حفظ كل الماكروز في الداتابيز ──
     import json as _json
+    macros = plan_data.get("macros", {})
     new_plan = NutritionPlan(
         user_id=client_id,
         goal=goal,
-        daily_calories=plan_data.get("daily_calories", 0),
-        total_protein=plan_data.get("total_protein"),
-        total_carbs=plan_data.get("total_carbs"),
-        total_fats=plan_data.get("total_fats"),
-        caloric_deficit=plan_data.get("caloric_deficit"),
-        bmr_used=plan_data.get("bmr"),
-        workout_day_calories=plan_data.get("workout_day_calories"),
-        rest_day_calories=plan_data.get("rest_day_calories"),
+        daily_calories=plan_data.get("daily_calories", macros.get("total_calories", 0)),
+        total_protein=plan_data.get("total_protein", macros.get("total_protein", 0)),
+        total_carbs=plan_data.get("total_carbs", macros.get("total_carbs", 0)),
+        total_fats=plan_data.get("total_fats", macros.get("total_fats", 0)),
+        caloric_deficit=plan_data.get("caloric_deficit", macros.get("caloric_deficit", 0)),
+        bmr_used=plan_data.get("bmr", macros.get("bmr", 0)),
+        workout_day_calories=plan_data.get("workout_day_calories", macros.get("workout_day_calories", 0)),
+        rest_day_calories=plan_data.get("rest_day_calories", macros.get("rest_day_calories", 0)),
         admin_notes=plan_data.get("admin_notes", ""),
         status="pending",
         is_active=False
@@ -133,6 +134,13 @@ def generate_plan(data: dict, db: Session = Depends(get_db), admin=Depends(get_c
     # ── حفظ الوجبات ──
     for meal in plan_data.get("meals", []):
         alternatives = meal.get("alternatives", [])
+        
+        # Calculate total calories for the meal based on the first alternative
+        meal_cals = 0
+        if alternatives and len(alternatives) > 0:
+            first_alt_items = alternatives[0].get("items", [])
+            meal_cals = sum(item.get("calories", 0) for item in first_alt_items)
+            
         full_data = _json.dumps({
             "meal_time": meal.get("meal_time", ""),
             "meal_role": meal.get("meal_role", ""),
@@ -141,9 +149,9 @@ def generate_plan(data: dict, db: Session = Depends(get_db), admin=Depends(get_c
 
         new_meal = Meal(
             plan_id=new_plan.id,
-            name=meal.get("meal_name", "وجبة"),
+            name=meal.get("name", meal.get("meal_name", "وجبة")),
             items=full_data,
-            calories=meal.get("total_calories", 0)
+            calories=meal.get("total_calories", meal_cals)
         )
         db.add(new_meal)
 
