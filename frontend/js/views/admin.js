@@ -1058,8 +1058,8 @@ views['a-client-detail'] = async () => {
         <h4 style="color:var(--text); margin-bottom:16px;">رفع صورة جديدة للنظام</h4>
         <div style="margin-bottom:16px">
           <label style="display:flex; align-items:center; gap:8px; background:var(--surface-3); border:2px dashed var(--border); border-radius:12px; padding:20px; cursor:pointer; justify-content:center; color:var(--text-dim); font-size:14px">
-            📷 اختر صورة
-            <input type="file" id="adminNutPhotoInput" accept="image/*" style="display:none" onchange="const f=this.files[0]; if(f) this.parentElement.innerHTML='📷 '+f.name">
+            <span id="adminNutPhotoLabelText">📷 اختر صورة</span>
+            <input type="file" id="adminNutPhotoInput" accept="image/*" style="display:none" onchange="const f=this.files[0]; if(f) document.getElementById('adminNutPhotoLabelText').innerText='📷 '+f.name">
           </label>
         </div>
         <button class="btn btn-primary" style="width:100%;" onclick="adminUploadNutritionPhoto(${c.id}, this)">رفع الصورة للعميل</button>
