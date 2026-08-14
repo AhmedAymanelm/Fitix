@@ -2533,7 +2533,6 @@ async function saveAiSettings() {
   } finally {
     btn.innerText = '💾 حفظ مفتاح الـ API';
   }
-  }
 }
 
 window.updateAdminCredentials = async function() {
