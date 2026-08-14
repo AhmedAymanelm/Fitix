@@ -1062,7 +1062,7 @@ views['a-client-detail'] = async () => {
             <input type="file" id="adminNutPhotoInput" accept="image/*" style="display:none" onchange="const f=this.files[0]; if(f) this.parentElement.innerHTML='📷 '+f.name">
           </label>
         </div>
-        <button class="btn btn-primary" style="width:100%;" onclick="adminUploadNutritionPhoto(${c.id})">رفع الصورة للعميل</button>
+        <button class="btn btn-primary" style="width:100%;" onclick="adminUploadNutritionPhoto(${c.id}, this)">رفع الصورة للعميل</button>
     </div>
   </div>
 
@@ -3121,13 +3121,14 @@ async function submitUploadExercise(e) {
 }
 
 // ── رفع صورة النظام الغذائي للعميل ──
-window.adminUploadNutritionPhoto = async function(clientId) {
+window.adminUploadNutritionPhoto = async function(clientId, btn) {
     const input = document.getElementById('adminNutPhotoInput');
     if (!input.files || !input.files[0]) {
         toast('❌ لازم تختار صورة الأول');
         return;
     }
-    const btn = event.currentTarget;
+    
+    if (!btn) btn = document.createElement('button'); // fallback
     const oldText = btn.innerHTML;
     btn.innerHTML = 'جاري الرفع...';
     btn.disabled = true;
