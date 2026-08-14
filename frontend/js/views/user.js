@@ -1658,26 +1658,16 @@ views['u-nutrition'] = async () => {
   </div>` : ''}
 
 
-  <!-- قسم صورة النظام الغذائي -->
+  <!-- قسم صورة النظام الغذائي (مرفوعة من الأدمن) -->
   <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:20px">
-    <h4 style="color:var(--primary);margin-bottom:12px;display:flex;align-items:center;gap:8px">📸 صورتي في النظام الغذائي</h4>
-    <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">ارفع صورتك وأنت مع النظام الغذائي — هيشوفها الكابتن عنده تلقائياً.</p>
+    <h4 style="color:var(--lime);margin-bottom:12px;display:flex;align-items:center;gap:8px">🖼️ صورة النظام الغذائي</h4>
+    <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">الخطة الغذائية المصورة المرفوعة من الكابتن الخاصة بك.</p>
 
     ${nutritionPhoto && nutritionPhoto.url ? `
-    <div style="margin-bottom:16px;position:relative;display:inline-block">
-      <img src="${nutritionPhoto.url}" style="max-width:100%;max-height:280px;border-radius:12px;border:2px solid var(--primary);object-fit:cover;display:block">
-      <div style="font-size:11px;color:var(--text-dim);margin-top:6px">آخر تحديث: ${nutritionPhoto.date || '—'}</div>
-      <button onclick="deleteNutritionPhoto()" style="position:absolute;top:8px;left:8px;width:28px;height:28px;border-radius:50%;background:rgba(220,50,50,0.9);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center" title="مسح الصورة">✕</button>
-    </div>` : '<div style="color:var(--text-dim);font-size:13px;margin-bottom:12px">لا توجد صورة محملة بعد.</div>'}
-
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <label style="display:flex;align-items:center;gap:8px;background:var(--primary);color:#000;font-weight:700;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px">
-        📷 اختر صورة
-        <input type="file" id="nutritionPhotoInput" accept="image/*" style="display:none" onchange="previewNutritionPhoto(this)">
-      </label>
-      <button id="uploadNutritionPhotoBtn" onclick="uploadNutritionPhoto()" style="display:none;background:var(--surface-3);border:1.5px solid var(--primary);color:var(--primary);font-weight:700;padding:10px 18px;border-radius:10px;cursor:pointer;font-size:14px">📤 رفع الصورة</button>
-    </div>
-    <div id="nutritionPhotoPreview" style="margin-top:12px"></div>
+    <div style="margin-bottom:16px;position:relative;display:inline-block;width:100%;">
+      <img src="${nutritionPhoto.url}" style="width:100%;border-radius:12px;border:2px solid var(--lime);object-fit:contain;display:block">
+      <div style="font-size:11px;color:var(--text-dim);margin-top:6px">تاريخ الرفع: ${nutritionPhoto.date || '—'}</div>
+    </div>` : '<div style="color:var(--text-dim);font-size:13px;margin-bottom:12px">لم يقم الكابتن برفع صورة للنظام الغذائي بعد.</div>'}
   </div>
 
   `;

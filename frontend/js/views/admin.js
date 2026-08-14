@@ -3539,7 +3539,7 @@ window.buildManualNutritionModal = function() {
         ${mealsHtml}
       </div>
       
-      <button class="btn btn-outline" style="width:100%; margin-bottom:20px; border-style:dashed; color:var(--text)" onclick="window.addManualMeal()">+ إضافة وجبة جديدة</button>
+      <button class="btn btn-outline" style="width:100%; margin-bottom:20px; border-style:dashed; border-color:var(--lime); color:var(--lime); font-weight:700;" onclick="window.addManualMeal()">+ إضافة وجبة جديدة</button>
       
       <div style="margin-bottom:20px;">
         <label style="color:var(--text-dim); font-size:14px; margin-bottom:5px; display:block">مدة النظام الغذائي (بالأيام)</label>
