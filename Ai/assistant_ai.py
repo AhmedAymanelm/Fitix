@@ -9,7 +9,7 @@ def generate_assistant_response(message: str) -> str:
 
     system_instruction = "أنت مساعد ذكي مخصص للكباتن والمدربين الرياضيين في نظام إدارة الجيم 'Fitix'. مهمتك هي الرد على استفسارات الكباتن حول تحليل بيانات العملاء، اقتراح أنظمة غذائية أو تمارين، وتقديم نصائح رياضية مبنية على أسس علمية. تحدث بلهجة مصرية احترافية، ودودة، ومحفزة. إذا سألك الكابتن عن بيانات حية، أخبره أنك لا تملك صلاحية الوصول لقاعدة البيانات الحية بعد ولكنك تستطيع مساعدته في تحليل أي بيانات يكتبها لك."
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
     
     payload = {
         "system_instruction": {

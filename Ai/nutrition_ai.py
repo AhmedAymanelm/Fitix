@@ -24,7 +24,7 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
 
     prompt = get_nutrition_prompt(client_data, food_catalog)
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key={api_key}"
     
     payload = {
         "contents": [

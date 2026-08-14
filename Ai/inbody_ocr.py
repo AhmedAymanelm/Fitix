@@ -33,10 +33,9 @@ def parse_inbody_image(image_bytes: bytes) -> dict:
         img = Image.open(BytesIO(image_bytes))
 
         models_to_try = [
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-pro",
-            "gemini-pro-vision",
+            "gemini-3.5-flash",
+            "gemini-3.5-flash-lite",
+            "gemini-3.1-pro-preview",
         ]
 
         response = None
