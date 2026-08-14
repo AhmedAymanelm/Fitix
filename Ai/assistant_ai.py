@@ -16,20 +16,34 @@ def generate_assistant_response(message: str) -> str:
 إذا سألك الكابتن عن بيانات حية، أخبره أنك لا تملك صلاحية الوصول لقاعدة البيانات الحية بعد ولكنك تستطيع مساعدته في تحليل أي بيانات يكتبها لك.
 """
 
-    model = genai_sdk.GenerativeModel(
-        model_name="gemini-1.5-flash",
-        system_instruction=system_instruction,
-    )
+    models_to_try = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash-latest",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash-8b",
+        "gemini-1.0-pro"
+    ]
     
-    try:
-        response = model.generate_content(
-            message,
-            safety_settings={
-                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
-                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
-            }
-        )
-        return response.text
-    except Exception as e:
-        print(f"Error calling Gemini: {e}")
-        return "عذراً، حدث خطأ أثناء التواصل مع الذكاء الاصطناعي. يرجى المحاولة لاحقاً."
+    last_error = ""
+    for model_name in models_to_try:
+        try:
+            model = genai_sdk.GenerativeModel(
+                model_name=model_name,
+                system_instruction=system_instruction,
+            )
+            
+            response = model.generate_content(
+                message,
+                safety_settings={
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                }
+            )
+            return response.text
+        except Exception as e:
+            last_error = str(e)
+            continue
+            
+    print(f"Error calling Gemini: {last_error}")
+    return "عذراً، حدث خطأ أثناء التواصل مع الذكاء الاصطناعي. يرجى المحاولة لاحقاً."

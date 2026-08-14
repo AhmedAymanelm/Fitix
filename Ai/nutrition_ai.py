@@ -40,8 +40,12 @@ def generate_nutrition_plan(client_data: dict, food_items: list[dict]) -> dict:
         print(f"[AI] Calling Gemini API, food items: {len(food_items)}")
 
         models_to_try = [
-            "gemini-1.5-flash",
+            "gemini-2.5-flash",
             "gemini-2.0-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-pro",
+            "gemini-1.5-flash-8b",
+            "gemini-1.0-pro"
         ]
 
         response = None
