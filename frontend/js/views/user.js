@@ -1631,20 +1631,6 @@ views['u-nutrition'] = async () => {
   const workoutNotes = plan.workout_nutrition_notes || '';
 
   return `
-  <!-- Header بالستايل بتاع الديزاين -->
-  <div style="background:linear-gradient(135deg,var(--primary) 0%,#96c728 100%);border-radius:20px;padding:24px;margin-bottom:20px;position:relative;overflow:hidden">
-    <div style="position:absolute;top:-20px;left:-20px;width:120px;height:120px;background:rgba(255,255,255,0.08);border-radius:50%"></div>
-    <div style="position:absolute;bottom:-30px;right:20px;width:80px;height:80px;background:rgba(255,255,255,0.06);border-radius:50%"></div>
-    <div style="position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center">
-      <div>
-        <h1 style="color:#000;font-size:22px;font-weight:900;margin-bottom:4px">🥗 نظام التغذية</h1>
-        <p style="color:rgba(0,0,0,0.65);font-size:13px">خطتك الغذائية من الكابتن — ${today}</p>
-      </div>
-      ${logoUrl ? `<img src="${logoUrl}" style="height:48px;object-fit:contain;border-radius:8px">` :
-      `<div style="font-size:26px;font-weight:900;color:#000">${gymName}</div>`}
-    </div>
-  </div>
-
 
 
   <!-- الوجبات -->
