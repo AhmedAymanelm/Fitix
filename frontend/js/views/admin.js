@@ -3150,7 +3150,8 @@ window.adminUploadNutritionPhoto = async function(clientId, btn) {
         }
 
         toast('✅ تم رفع صورة النظام الغذائي للعميل بنجاح');
-        adminClientView(clientId, 't4'); // Refresh the tab
+        window.currentClientTabId = 't4';
+        goView('a-client-detail');
     } catch(e) {
         toast('❌ ' + e.message);
         btn.disabled = false;
