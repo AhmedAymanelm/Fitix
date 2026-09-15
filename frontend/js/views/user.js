@@ -1569,14 +1569,28 @@ views['u-nutrition'] = async () => {
   let nutritionPhoto = null;
   try { nutritionPhoto = await apiFetch('/workouts/my-nutrition-photo'); } catch(e) {}
 
-  if ((!plan || !plan.meals || plan.meals.length === 0) && (!nutritionPhoto || !nutritionPhoto.url)) {
-    return `
-    <div class="page-head"><h1>🥗 نظام التغذية</h1><p>خطتك الغذائية من الكابتن</p></div>
-    <div style="text-align:center;padding:60px 20px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px">
-      <div style="font-size:56px;margin-bottom:16px">🥗</div>
-      <h3 style="color:var(--text);margin-bottom:8px">لسه ما جالكش نظام غذائي</h3>
-      <p style="color:var(--text-dim)">الكابتن لسه بيجهز نظامك الغذائي. هتتنوتفاي لما يتجهز!</p>
-    </div>`;
+  if (!plan || !plan.meals || plan.meals.length === 0) {
+    if (nutritionPhoto && nutritionPhoto.url) {
+      return `
+      <div class="page-head"><h1>🥗 نظام التغذية</h1><p>خطتك الغذائية المصورة من الكابتن</p></div>
+      <div style="background:var(--surface-2);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:20px">
+        <h4 style="color:var(--lime);margin-bottom:12px;display:flex;align-items:center;gap:8px">🖼️ صورة النظام الغذائي</h4>
+        <p style="font-size:13px;color:var(--text-dim);margin-bottom:16px">الخطة الغذائية المصورة المرفوعة من الكابتن الخاصة بك.</p>
+        <div style="margin-bottom:16px;position:relative;display:inline-block;width:100%;">
+          <img src="${nutritionPhoto.url}" id="clientNutImageToPdf" crossorigin="anonymous" style="width:100%;border-radius:12px;border:2px solid var(--lime);object-fit:contain;display:block">
+          <div style="font-size:11px;color:var(--text-dim);margin-top:6px">تاريخ الرفع: ${nutritionPhoto.date || '—'}</div>
+          <button class="btn btn-outline" style="margin-top:16px; width:100%; border-color:var(--lime); color:var(--lime)" onclick="downloadClientNutPhotoAsPdf()">📥 تحميل الصورة كـ PDF</button>
+        </div>
+      </div>`;
+    } else {
+      return `
+      <div class="page-head"><h1>🥗 نظام التغذية</h1><p>خطتك الغذائية من الكابتن</p></div>
+      <div style="text-align:center;padding:60px 20px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px">
+        <div style="font-size:56px;margin-bottom:16px">🥗</div>
+        <h3 style="color:var(--text);margin-bottom:8px">لسه ما جالكش نظام غذائي</h3>
+        <p style="color:var(--text-dim)">الكابتن لسه بيجهز نظامك الغذائي. هتتنوتفاي لما يتجهز!</p>
+      </div>`;
+    }
   }
 
   // ترتيب الوجبات حسب الوقت
