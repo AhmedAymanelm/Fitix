@@ -3,7 +3,7 @@ views['u-dash'] = async () => {
   const data = await apiFetch('/workouts/today');
 
   if (!data.exercises || data.exercises.length === 0) {
-    return `<div class="page-head"><h1>تمارين النهاردة</h1><p>مفيش تمارين مخصصة ليك النهاردة، تقدر تريح!</p></div>`;
+    return `<div class="page-head"><h1>خطة التمارين</h1><p>مفيش تمارين مخصصة ليك لسه، الكابتن هيجهزها قريباً!</p></div>`;
   }
 
   // State Management
@@ -53,22 +53,21 @@ views['u-dash'] = async () => {
   if (!data.plan_id) {
     return `
     <div class="page-head" style="margin-bottom: 20px;">
-      <h1 style="margin-bottom:5px;">يوم راحة 🧘‍♂️</h1>
-      <p style="color:var(--text-dim); margin:0;">${data.plan_name}</p>
+      <h1 style="margin-bottom:5px;">خطة التمارين 🏋️‍♂️</h1>
     </div>
     ${videoHtml}
     <div style="text-align:center; padding:50px 20px; background:var(--surface-2); border:1px solid var(--border); border-radius:16px;">
-        <div style="font-size:60px; margin-bottom:15px;">😴</div>
-        <h2 style="color:var(--text); margin-bottom:10px;">استمتع بيومك!</h2>
-        <p style="color:var(--text-dim);">ليس لديك أي تمارين مخصصة لليوم. الراحة جزء مهم جداً من الاستشفاء والتطور العضلي.</p>
+        <div style="font-size:60px; margin-bottom:15px;">⏳</div>
+        <h2 style="color:var(--text); margin-bottom:10px;">لسه مفيش تمارين</h2>
+        <p style="color:var(--text-dim);">الكابتن لسه بيجهز خطة التمارين الخاصة بيك. هتظهر هنا بمجرد ما تجهز.</p>
     </div>
     `;
   }
 
   return `
   <div class="page-head" style="margin-bottom: 20px;">
-    <h1 style="margin-bottom:5px;">تمارين النهاردة 🔥</h1>
-    <p style="color:var(--text-dim); margin:0;">خطة اليوم: ${data.plan_name}</p>
+    <h1 style="margin-bottom:5px;">خطة التمارين الخاصة بك 🔥</h1>
+    <p style="color:var(--text-dim); margin:0;">${data.plan_name}</p>
   </div>
   ${videoHtml}
 

@@ -619,134 +619,93 @@ views['a-client-detail'] = async () => {
   try { clientAdminVideo = await apiFetch('/workouts/admin/video/' + cid); } catch(e) {}
 
   
-  const todayDate = new Date();
-  const arabicDays = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-  const arabicMonths = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-  
-  const calendarDays = [];
-  for (let i = 0; i < 7; i++) {
-      const d = new Date(todayDate);
-      d.setDate(todayDate.getDate() + i);
-      calendarDays.push({
-          name: arabicDays[d.getDay()],
-          dateStr: `${d.getDate()} ${arabicMonths[d.getMonth()]}`
-      });
-  }
-  
   let workoutsHtml = '<div style="display:flex; flex-direction:column; gap:20px;">';
   
-  calendarDays.forEach(dayObj => {
-      const day = dayObj.name;
-      const dayPlans = workouts.filter(p => p.day_of_week === day);
-      
-      let dayHtml = `
+  if (workouts.length === 0) {
+      workoutsHtml += `
+      <div style="background:var(--surface-2); border-radius:12px; border:1px solid var(--border); padding:30px 20px; text-align:center;">
+          <div style="font-size:40px; margin-bottom:15px;">🏋️</div>
+          <h3 style="color:var(--text); margin-bottom:10px;">لا توجد خطط تمرين</h3>
+          <p style="color:var(--text-dim); font-size:14px; margin-bottom:20px;">قم بإنشاء خطة تمرين شاملة للعميل ليتمكن من رؤية التمارين الخاصة به.</p>
+          <button class="btn btn-primary" onclick="openAddPlanModal()">+ إنشاء خطة تمرين</button>
+      </div>`;
+  } else {
+      let plansHtml = `
       <div style="background:var(--surface-2); border-radius:12px; border:1px solid var(--border); overflow:hidden;">
           <div style="background:var(--bg); padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-              <h3 style="margin:0; font-size:16px; color:var(--text); display:flex; align-items:center; gap:10px;"><span style="font-size:20px;">📅</span> ${day} <span style="font-size:12px; color:var(--text-dim); font-weight:normal;">${dayObj.dateStr}</span></h3>
-              <button class="btn btn-ghost btn-sm" style="color:var(--primary); font-size:12px; padding:4px 8px; border:1px solid var(--primary);" onclick="openAddPlanModal('${day}')">+ إضافة خطة لليوم</button>
+              <h3 style="margin:0; font-size:16px; color:var(--text); display:flex; align-items:center; gap:10px;"><span style="font-size:20px;">🏋️</span> خطط التمارين</h3>
+              <button class="btn btn-ghost btn-sm" style="color:var(--primary); font-size:12px; padding:4px 8px; border:1px solid var(--primary);" onclick="openAddPlanModal()">+ إضافة خطة أخرى</button>
           </div>
           <div style="padding:15px; display:flex; flex-direction:column; gap:15px;">
       `;
       
-      if (dayPlans.length > 0) {
-          dayHtml += dayPlans.map(p => `
-              <div class="card" style="margin-bottom:0; border:1px solid var(--border); padding:0; overflow:hidden; background:var(--bg);">
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; cursor:pointer;" onclick="const content = this.nextElementSibling; const icon = this.querySelector('.toggle-icon'); if(content.style.display==='none'){content.style.display='flex'; icon.textContent='⬆️';}else{content.style.display='none'; icon.textContent='⬇️';}">
-                      <div>
-                          <h3 style="color:var(--text); margin-bottom:5px">${p.name} <span style="font-size:12px; font-weight:normal; color:var(--text-dim); margin-right:10px;">(${p.exercises.length} تمارين)</span></h3>
-                      </div>
-                      <div style="display:flex; gap:10px; align-items:center;">
-                          <button class="btn btn-ghost" style="color:var(--coral); padding:4px 8px; font-size:12px" onclick="event.stopPropagation(); deleteAdminWorkoutPlan(${p.id})">حذف</button>
-                          <span class="toggle-icon" style="color:var(--text-dim); font-size:18px; margin-right:10px;">⬇️</span>
-                      </div>
+      plansHtml += workouts.map(p => `
+          <div class="card" style="margin-bottom:0; border:1px solid var(--border); padding:0; overflow:hidden; background:var(--bg);">
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; cursor:pointer;" onclick="const content = this.nextElementSibling; const icon = this.querySelector('.toggle-icon'); if(content.style.display==='none'){content.style.display='flex'; icon.textContent='⬆️';}else{content.style.display='none'; icon.textContent='⬇️';}">
+                  <div>
+                      <h3 style="color:var(--text); margin-bottom:5px">${p.name} <span style="font-size:12px; font-weight:normal; color:var(--text-dim); margin-right:10px;">(${p.exercises.length} تمارين)</span></h3>
                   </div>
-                  <div style="display:none; flex-direction:column; gap:10px; padding:15px; background:var(--surface-2); border-top:1px solid var(--border);">
-                      ${p.exercises.map(ex => {
-                          const imgUrl = ex.video_url || ex.gif_url;
-                          const bg = imgUrl ? "background: url('" + imgUrl + "') center/cover no-repeat;" : "background:#222;";
-                          
-                          let setRows = '';
-                          for (let i = 1; i <= ex.sets; i++) {
-                              setRows += `
-                              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:14px; color:var(--text);">
-                                  <div style="flex:1; text-align:center;">
-                                      <span style="display:inline-block; width:28px; height:28px; line-height:26px; border:1px solid var(--border); border-radius:6px; font-weight:bold; background:var(--bg);">${i}</span>
-                                  </div>
-                                  <div style="flex:1; text-align:center;">${ex.reps} عادي</div>
-                                  <div style="flex:1; text-align:center;">${ex.weight}</div>
-                                  <div style="flex:1; text-align:center; color:var(--text-dim);">${ex.rest_seconds}s</div>
+                  <div style="display:flex; gap:10px; align-items:center;">
+                      <button class="btn btn-ghost" style="color:var(--coral); padding:4px 8px; font-size:12px" onclick="event.stopPropagation(); deleteAdminWorkoutPlan(${p.id})">حذف الخطة</button>
+                      <span class="toggle-icon" style="color:var(--text-dim); font-size:18px; margin-right:10px;">⬇️</span>
+                  </div>
+              </div>
+              <div style="display:flex; flex-direction:column; gap:10px; padding:15px; background:var(--surface-2); border-top:1px solid var(--border);">
+                  ${p.exercises.map(ex => {
+                      const imgUrl = ex.video_url || ex.gif_url;
+                      const bg = imgUrl ? "background: url('" + imgUrl + "') center/cover no-repeat;" : "background:#222;";
+                      
+                      let setRows = '';
+                      for (let i = 1; i <= ex.sets; i++) {
+                          setRows += `
+                          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:14px; color:var(--text);">
+                              <div style="flex:1; text-align:center;">
+                                  <span style="display:inline-block; width:28px; height:28px; line-height:26px; border:1px solid var(--border); border-radius:6px; font-weight:bold; background:var(--bg);">${i}</span>
                               </div>
-                              `;
-                          }
-              
-                          return `
-                          <div style="background:var(--surface-2); border-radius:12px; border:1px solid var(--border); overflow:hidden; margin-bottom:10px;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid var(--border); background:var(--bg);">
-                              <div style="display:flex; flex-direction:column; gap:5px;">
-                                <h3 style="margin:0; font-size:16px; color:var(--text);">${ex.name}</h3>
-                                <div style="font-size:12px; color:var(--text-dim);">عام</div>
-                              </div>
-                              <div style="width:60px; height:60px; border-radius:8px; border:1px solid var(--border); ${bg} flex-shrink:0;"></div>
-                            </div>
-                            
-                            <div style="padding:0 15px; background:var(--surface-2);">
-                              <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-dim); font-weight:bold;">
-                                  <div style="flex:1; text-align:center;">المجموعات</div>
-                                  <div style="flex:1; text-align:center;">عدات</div>
-                                  <div style="flex:1; text-align:center;">الوزن (كجم)</div>
-                                  <div style="flex:1; text-align:center;">راحة</div>
-                              </div>
-                              
-                              ${setRows}
-                              
-                              <div style="display:flex; gap:10px; padding:15px 0; justify-content:center;">
-                                  <button class="btn btn-ghost btn-sm" style="color:var(--primary); font-size:12px; padding:6px 15px; border:1px solid var(--primary); flex:1;" onclick="openEditExerciseModal(${ex.id}, ${ex.sets}, ${ex.reps}, ${ex.rest_seconds}, '${ex.weight}')">تعديل التمرين</button>
-                                  <button class="btn btn-ghost btn-sm" style="color:var(--coral); font-size:12px; padding:6px 15px; border:1px solid var(--coral); flex:1;" onclick="deleteAdminExercise(${ex.id})">مسح التمرين</button>
-                              </div>
-                            </div>
+                              <div style="flex:1; text-align:center;">${ex.reps} عادي</div>
+                              <div style="flex:1; text-align:center;">${ex.weight}</div>
+                              <div style="flex:1; text-align:center; color:var(--text-dim);">${ex.rest_seconds}s</div>
                           </div>
                           `;
-                      }).join('')}
-                      <button class="btn btn-ghost" style="width:100%; border-color:var(--primary); color:var(--primary)" onclick="openAddExerciseModal(${p.id})">+ إضافة تمرين لهذه الخطة</button>
-                  </div>
+                      }
+          
+                      return `
+                      <div style="background:var(--surface-2); border-radius:12px; border:1px solid var(--border); overflow:hidden; margin-bottom:10px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; border-bottom:1px solid var(--border); background:var(--bg);">
+                          <div style="display:flex; flex-direction:column; gap:5px;">
+                            <h3 style="margin:0; font-size:16px; color:var(--text);">${ex.name}</h3>
+                            <div style="font-size:12px; color:var(--text-dim);">عام</div>
+                          </div>
+                          <div style="width:60px; height:60px; border-radius:8px; border:1px solid var(--border); ${bg} flex-shrink:0;"></div>
+                        </div>
+                        
+                        <div style="padding:0 15px; background:var(--surface-2);">
+                          <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--border); font-size:12px; color:var(--text-dim); font-weight:bold;">
+                              <div style="flex:1; text-align:center;">المجموعات</div>
+                              <div style="flex:1; text-align:center;">عدات</div>
+                              <div style="flex:1; text-align:center;">الوزن (كجم)</div>
+                              <div style="flex:1; text-align:center;">راحة</div>
+                          </div>
+                          
+                          ${setRows}
+                          
+                          <div style="display:flex; gap:10px; padding:15px 0; justify-content:center;">
+                              <button class="btn btn-ghost btn-sm" style="color:var(--primary); font-size:12px; padding:6px 15px; border:1px solid var(--primary); flex:1;" onclick="openEditExerciseModal(${ex.id}, ${ex.sets}, ${ex.reps}, ${ex.rest_seconds}, '${ex.weight}')">تعديل التمرين</button>
+                              <button class="btn btn-ghost btn-sm" style="color:var(--coral); font-size:12px; padding:6px 15px; border:1px solid var(--coral); flex:1;" onclick="deleteAdminExercise(${ex.id})">مسح التمرين</button>
+                          </div>
+                        </div>
+                      </div>
+                      `;
+                  }).join('')}
+                  <button class="btn btn-ghost" style="width:100%; border-color:var(--primary); color:var(--primary)" onclick="openAddExerciseModal(${p.id})">+ إضافة تمرين لهذه الخطة</button>
               </div>
-          `).join('');
-      } else {
-          dayHtml += `<div style="text-align:center; color:var(--text-dim); padding:20px 0; font-size:14px;">لا توجد خطة مسجلة ليوم ${day}</div>`;
-      }
-      
-      dayHtml += `</div></div>`;
-      workoutsHtml += dayHtml;
-  });
-  
-  const otherPlans = workouts.filter(p => !arabicDays.includes(p.day_of_week));
-  if (otherPlans.length > 0) {
-      let otherHtml = `
-      <div style="background:var(--surface-2); border-radius:12px; border:1px solid var(--border); overflow:hidden;">
-          <div style="background:var(--bg); padding:15px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
-              <h3 style="margin:0; font-size:16px; color:var(--text); display:flex; align-items:center; gap:10px;"><span style="font-size:20px;">📅</span> أيام أخرى / غير محدد</h3>
           </div>
-          <div style="padding:15px; display:flex; flex-direction:column; gap:15px;">
-      `;
-      otherHtml += otherPlans.map(p => `
-              <div class="card" style="margin-bottom:0; border:1px solid var(--border); padding:0; overflow:hidden; background:var(--bg);">
-                  <div style="display:flex; justify-content:space-between; align-items:center; padding:15px; cursor:pointer;" onclick="const content = this.nextElementSibling; const icon = this.querySelector('.toggle-icon'); if(content.style.display==='none'){content.style.display='flex'; icon.textContent='⬆️';}else{content.style.display='none'; icon.textContent='⬇️';}">
-                      <div>
-                          <h3 style="color:var(--text); margin-bottom:5px">${p.name} <span style="font-size:12px; font-weight:normal; color:var(--text-dim); margin-right:10px;">(${p.exercises.length} تمارين)</span></h3>
-                      </div>
-                      <div style="display:flex; gap:10px; align-items:center;">
-                          <button class="btn btn-ghost" style="color:var(--coral); padding:4px 8px; font-size:12px" onclick="event.stopPropagation(); deleteAdminWorkoutPlan(${p.id})">حذف</button>
-                          <span class="toggle-icon" style="color:var(--text-dim); font-size:18px; margin-right:10px;">⬇️</span>
-                      </div>
-                  </div>
-                  <div style="display:none; flex-direction:column; gap:10px; padding:15px; background:var(--surface-2); border-top:1px solid var(--border);">
-                      <button class="btn btn-ghost" style="width:100%; border-color:var(--primary); color:var(--primary)" onclick="openAddExerciseModal(${p.id})">+ إضافة تمرين لهذه الخطة</button>
-                  </div>
-              </div>
       `).join('');
-      otherHtml += `</div></div>`;
-      workoutsHtml += otherHtml;
+      
+      plansHtml += `</div></div>`;
+      workoutsHtml += plansHtml;
   }
+  
   workoutsHtml += '</div>';
   if (activePlan) {
     nutritionHtml = `
@@ -2724,7 +2683,7 @@ async function loadAllExercises() {
     } catch(e) { console.error(e); }
 }
 
-function openAddPlanModal(dayStr = '') {
+function openAddPlanModal() {
     let m = document.getElementById('adminPlanModal');
     if (!m) {
         m = document.createElement('div');
@@ -2732,9 +2691,8 @@ function openAddPlanModal(dayStr = '') {
         m.innerHTML = `
         <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;display:flex;justify-content:center;align-items:center;">
           <div style="background:var(--surface-2);padding:20px;border-radius:12px;width:90%;max-width:400px;border:1px solid var(--border)">
-            <h3 style="margin-bottom:15px">إنشاء خطة جديدة</h3>
-            <div class="field" style="margin-bottom:20px"><label>اسم الخطة (مثلاً: أرجل، بوش)</label><input type="text" id="pName" class="settings-input" style="width:100%"></div>
-            <input type="hidden" id="pDay">
+            <h3 style="margin-bottom:15px">إنشاء خطة تمرين</h3>
+            <div class="field" style="margin-bottom:20px"><label>اسم الخطة (مثلاً: خطة شاملة)</label><input type="text" id="pName" class="settings-input" style="width:100%"></div>
             <div style="display:flex;gap:10px">
               <button class="btn btn-primary" style="flex:1" onclick="saveAdminPlan()">حفظ</button>
               <button class="btn btn-ghost" style="flex:1" onclick="document.getElementById('adminPlanModal').style.display='none'">إلغاء</button>
@@ -2744,19 +2702,17 @@ function openAddPlanModal(dayStr = '') {
         document.body.appendChild(m);
     }
     document.getElementById('pName').value = '';
-    document.getElementById('pDay').value = dayStr;
     m.style.display = 'flex';
 }
 
 async function saveAdminPlan() {
     const name = document.getElementById('pName').value.trim();
-    const day = document.getElementById('pDay').value.trim();
     if (!name) return toast('ادخل اسم الخطة');
     
     try {
         await apiFetch('/workouts/admin/client/' + window.currentClientId, {
             method: 'POST',
-            body: JSON.stringify({name: name, day_of_week: day})
+            body: JSON.stringify({name: name, day_of_week: null})
         });
         toast('تم إضافة الخطة');
         document.getElementById('adminPlanModal').style.display = 'none';

@@ -33,26 +33,13 @@ router = APIRouter(prefix="/api/workouts", tags=["Workouts"], dependencies=[Depe
 @router.get("/today")
 def get_today_workout(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """جلب تمرين اليوم الخاص باليوزر الحالي."""
-    # Map English day to Arabic day
-    days_map = {
-        "Saturday": "السبت",
-        "Sunday": "الأحد",
-        "Monday": "الاثنين",
-        "Tuesday": "الثلاثاء",
-        "Wednesday": "الأربعاء",
-        "Thursday": "الخميس",
-        "Friday": "الجمعة"
-    }
-    today_en = datetime.now().strftime("%A")
-    today_ar = days_map.get(today_en, "السبت")
-
+    # نجلب أول خطة تمرين للعميل بغض النظر عن اليوم
     plan = db.query(WorkoutPlan).filter(
-        WorkoutPlan.user_id == current_user.id,
-        WorkoutPlan.day_of_week == today_ar
+        WorkoutPlan.user_id == current_user.id
     ).first()
     
     if not plan:
-        return {"plan_id": None, "plan_name": f"يوم راحة ({today_ar}) - لا توجد تمارين", "exercises": []}
+        return {"plan_id": None, "plan_name": "لا توجد خطة تمارين مسجلة حالياً", "exercises": []}
         
     exercises = db.query(WorkoutExercise).filter(WorkoutExercise.plan_id == plan.id).order_by(WorkoutExercise.order).all()
     
@@ -243,10 +230,7 @@ def create_workout_log(data: LogCreate, current_user: User = Depends(get_current
         )
         db.add(log)
     
-    # Mark the plan as completed so it doesn't show up again today
-    plan = db.query(WorkoutPlan).filter(WorkoutPlan.id == data.plan_id).first()
-    if plan:
-        plan.is_completed = True
+    # لن نقوم بتحديد الخطة كمنتهية (is_completed = True) لأن الخطة أصبحت ثابتة للعميل
             
     db.commit()
     return {"message": "تم حفظ التدريب بنجاح"}
