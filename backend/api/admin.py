@@ -639,6 +639,8 @@ def get_client_detail(client_id: int, db: Session = Depends(get_db)):
         "body_photo_back": p.body_photo_back if p else None,
         "body_photo_side": p.body_photo_side if p else None,
         "body_photo_date": p.body_photo_date.strftime("%Y-%m-%d") if p and p.body_photo_date else None,
+        "workout_pdf_url": p.workout_pdf_url if p else None,
+        "workout_pdf_date": p.workout_pdf_date.strftime("%Y-%m-%d") if p and p.workout_pdf_date else None,
         # CV
         "cv_access": getattr(u, 'cv_access', False),
         "fitness_tests": [
@@ -711,6 +713,46 @@ async def admin_upload_nutrition_photo(
     
     return {"status": "ok", "url": url}
 
+@router.post("/workout-pdf/{user_id}")
+async def admin_upload_workout_pdf(
+    user_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """رفع ملف التمارين (PDF أو صورة) للعميل بواسطة الأدمن"""
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="يجب إرفاق ملف")
+    
+    contents = await file.read()
+    res = cloudinary.uploader.upload(
+        contents,
+        folder=f"workout_pdfs/{user_id}",
+        public_id=f"{user_id}_workout_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+        resource_type="auto"
+    )
+    url = res.get("secure_url", "")
+    
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user_id).first()
+    if not profile:
+        profile = ClientProfile(user_id=user_id)
+        db.add(profile)
+    
+    profile.workout_pdf_url = url
+    profile.workout_pdf_date = datetime.utcnow()
+    db.commit()
+    
+    return {"status": "ok", "url": url}
+
+@router.delete("/workout-pdf/{user_id}")
+async def admin_delete_workout_pdf(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == user_id).first()
+    if profile:
+        profile.workout_pdf_url = None
+        db.commit()
+    return {"status": "ok", "message": "deleted"}
 
 
 class PasswordUpdate(BaseModel):

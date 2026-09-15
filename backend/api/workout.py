@@ -404,6 +404,35 @@ def get_nutrition_photo(
     }
 
 
+@router.get("/my-workout-pdf")
+def get_workout_pdf(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """جيب ملف التدريب للعميل الحالي"""
+    from models import ClientProfile
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if not profile or not profile.workout_pdf_url:
+        return {"url": None, "date": None}
+    return {
+        "url": profile.workout_pdf_url,
+        "date": profile.workout_pdf_date.strftime("%Y-%m-%d") if profile.workout_pdf_date else None
+    }
+
+
+@router.delete("/my-workout-pdf")
+def delete_workout_pdf(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from models import ClientProfile
+    profile = db.query(ClientProfile).filter(ClientProfile.user_id == current_user.id).first()
+    if profile:
+        profile.workout_pdf_url = None
+        db.commit()
+    return {"message": "deleted"}
+
+
 @router.delete("/my-nutrition-photo")
 def delete_nutrition_photo(
     current_user: User = Depends(get_current_user),

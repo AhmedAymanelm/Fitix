@@ -707,6 +707,37 @@ views['a-client-detail'] = async () => {
   }
   
   workoutsHtml += '</div>';
+
+  let workoutPdfHtml = `
+  <div style="background:var(--surface-2); border-radius:12px; border:1px solid var(--border); padding:15px; margin-top:20px;">
+    <h3 style="margin:0 0 10px 0; font-size:16px; color:var(--text); display:flex; align-items:center; gap:10px;"><span style="font-size:20px;">📄</span> ملف التمارين المرفق (PDF/صورة)</h3>
+    <p style="font-size:12px; color:var(--text-dim); margin-bottom:15px;">يمكنك رفع ملف PDF أو صورة للتمارين ليظهر للعميل بدلاً من أو بجانب التمارين النصية.</p>
+    
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      ${c.workout_pdf_url ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg); padding:10px 15px; border-radius:8px; border:1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:24px;">✅</span>
+            <div>
+              <div style="font-size:14px; font-weight:bold; color:var(--text);">تم رفع ملف تمارين</div>
+              <div style="font-size:12px; color:var(--text-dim);">تاريخ الرفع: ${c.workout_pdf_date || 'غير معروف'}</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <a href="${c.workout_pdf_url}" target="_blank" class="btn btn-ghost btn-sm" style="color:var(--primary); border:1px solid var(--primary); padding:4px 10px;">عرض</a>
+            <button class="btn btn-ghost btn-sm" style="color:var(--coral); border:1px solid var(--coral); padding:4px 10px;" onclick="deleteWorkoutPdf(${c.id})">حذف</button>
+          </div>
+        </div>
+      ` : `
+        <div style="display:flex; gap:10px; align-items:center;">
+          <input type="file" id="workoutPdfInput" accept=".pdf,image/*" style="flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); padding:8px; border-radius:6px; font-size:14px;">
+          <button class="btn btn-primary btn-sm" style="padding:8px 15px;" onclick="uploadWorkoutPdf(${c.id})">رفع الملف</button>
+        </div>
+      `}
+    </div>
+  </div>`;
+  workoutsHtml += workoutPdfHtml;
+
   if (activePlan) {
     nutritionHtml = `
       <div class="card" style="margin-bottom:20px; border:1px solid var(--lime); background:rgba(204,255,0,0.03)">
@@ -3759,6 +3790,60 @@ window.deleteProgressAlbum = async function(photoId, clientId) {
     window.currentClientTabId = 'tphotos';
     goView('a-client-detail');
   } catch(e) {
+    toast('❌ ' + e.message);
+  }
+};
+
+window.uploadWorkoutPdf = async function(clientId) {
+  const fileInput = document.getElementById('workoutPdfInput');
+  if (!fileInput) return;
+  const file = fileInput.files[0];
+  if (!file) return toast('يرجى اختيار ملف');
+
+  const btn = event.target;
+  const originalText = btn.innerText;
+  btn.innerText = 'جاري الرفع...';
+  btn.disabled = true;
+
+  const fd = new FormData();
+  fd.append('file', file);
+
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(API_BASE + '/admin/workout-pdf/' + clientId, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token },
+      body: fd
+    });
+    if (!res.ok) throw new Error('فشل الرفع');
+    toast('✅ تم رفع ملف التمارين بنجاح');
+    window.currentClientTabId = 't3';
+    setTimeout(() => goView('a-client-detail'), 600);
+  } catch (e) {
+    toast('❌ ' + e.message);
+    btn.innerText = originalText;
+    btn.disabled = false;
+  }
+};
+
+window.deleteWorkoutPdf = async function(clientId) {
+  if (!confirm('متأكد إنك عاوز تحذف ملف التمارين ده؟')) return;
+  try {
+    const token = localStorage.getItem('token');
+    // Admin needs an endpoint to delete it, wait we can just reuse the client endpoint or create an admin one. 
+    // Let's use a specialized apiFetch for the admin if needed, but since it's admin, they might not be able to call the client route securely if it depends on get_current_user.
+    // Wait, the client endpoint `DELETE /my-workout-pdf` uses `current_user`. Admin can't use it for client!
+    // Let's just create the delete endpoint in admin.py or update the profile manually. 
+    // Wait, `POST /admin/workout-pdf/{user_id}` exists but I didn't create a DELETE endpoint for admin!
+    // Oh, I will add an admin delete endpoint or modify `admin.js` to do an API call. For now, I'll add `DELETE /admin/workout-pdf/{user_id}` in admin.py later if needed.
+    const res = await fetch(API_BASE + '/admin/workout-pdf/' + clientId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    toast('✅ تم الحذف');
+    window.currentClientTabId = 't3';
+    setTimeout(() => goView('a-client-detail'), 600);
+  } catch (e) {
     toast('❌ ' + e.message);
   }
 };

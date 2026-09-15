@@ -1,40 +1,14 @@
 /* ---- User Dashboard (Today's Workout) ---- */
 views['u-dash'] = async () => {
-  const data = await apiFetch('/workouts/today');
+  const [dataRes, adminVideoRes, workoutPdfRes] = await Promise.allSettled([
+    apiFetch('/workouts/today'),
+    apiFetch('/workouts/my-video').catch(() => null),
+    apiFetch('/workouts/my-workout-pdf').catch(() => null)
+  ]);
 
-  if (!data.exercises || data.exercises.length === 0) {
-    return `<div class="page-head"><h1>خطة التمارين</h1><p>مفيش تمارين مخصصة ليك لسه، الكابتن هيجهزها قريباً!</p></div>`;
-  }
-
-  // State Management
-  const todayDate = new Date().toISOString().split('T')[0];
-  const currentExIds = data.exercises.map(ex => ex.id).join(',');
-
-  let stateStr = localStorage.getItem('workoutState');
-  let state = stateStr ? JSON.parse(stateStr) : null;
-
-  if (!state || state.plan_id !== data.plan_id || state.date !== todayDate || state.ex_ids !== currentExIds) {
-    state = { plan_id: data.plan_id, date: todayDate, ex_ids: currentExIds, completed_sets: {}, partial_sets: {} };
-    localStorage.setItem('workoutState', JSON.stringify(state));
-  }
-
-  window.currentWorkoutState = state;
-  window.currentWorkoutData = data.exercises;
-
-  // Calculate if the entire workout is already finished based on state
-  let isAllFinished = false;
-  if (data.exercises.length > 0) {
-    isAllFinished = data.exercises.every(ex => {
-      let comp = state.completed_sets[ex.id] || [];
-      return comp.length >= ex.sets;
-    });
-  }
-
-  // Automatic sync makes manual buttons obsolete.
-
-  // جيب فيديو الأدمن لو فيه
-  let adminVideo = null;
-  try { adminVideo = await apiFetch('/workouts/my-video'); } catch (e) {}
+  const data = dataRes.status === 'fulfilled' ? dataRes.value : { plan_id: null, plan_name: '', exercises: [] };
+  const adminVideo = adminVideoRes.status === 'fulfilled' ? adminVideoRes.value : null;
+  const workoutPdf = workoutPdfRes.status === 'fulfilled' ? workoutPdfRes.value : null;
 
   let videoHtml = '';
   if (adminVideo && adminVideo.url) {
@@ -50,7 +24,19 @@ views['u-dash'] = async () => {
     `;
   }
 
-  if (!data.plan_id) {
+  let pdfHtml = '';
+  if (workoutPdf && workoutPdf.url) {
+    pdfHtml = `
+    <div style="background:var(--surface-2); border-radius:12px; border:1px solid var(--border); padding:20px; margin-bottom:20px; text-align:center;">
+      <div style="font-size:40px; margin-bottom:10px;">📄</div>
+      <h3 style="color:var(--text); margin-bottom:5px;">ملف التمارين المرفق</h3>
+      <p style="color:var(--text-dim); font-size:12px; margin-bottom:15px;">الكابتن أرفق ملف للتمارين الخاصة بك. يمكنك عرضه أو تحميله من هنا.</p>
+      <a href="${workoutPdf.url}" target="_blank" class="btn btn-primary" style="display:inline-block; text-decoration:none;">📥 عرض / تحميل الملف</a>
+    </div>
+    `;
+  }
+
+  if ((!data.exercises || data.exercises.length === 0) && (!workoutPdf || !workoutPdf.url)) {
     return `
     <div class="page-head" style="margin-bottom: 20px;">
       <h1 style="margin-bottom:5px;">خطة التمارين 🏋️‍♂️</h1>
@@ -60,16 +46,41 @@ views['u-dash'] = async () => {
         <div style="font-size:60px; margin-bottom:15px;">⏳</div>
         <h2 style="color:var(--text); margin-bottom:10px;">لسه مفيش تمارين</h2>
         <p style="color:var(--text-dim);">الكابتن لسه بيجهز خطة التمارين الخاصة بيك. هتظهر هنا بمجرد ما تجهز.</p>
-    </div>
-    `;
+    </div>`;
+  }
+
+  // State Management
+  const todayDate = new Date().toISOString().split('T')[0];
+  const currentExIds = data.exercises ? data.exercises.map(ex => ex.id).join(',') : '';
+
+  let stateStr = localStorage.getItem('workoutState');
+  let state = stateStr ? JSON.parse(stateStr) : null;
+
+  if (data.plan_id) {
+    if (!state || state.plan_id !== data.plan_id || state.date !== todayDate || state.ex_ids !== currentExIds) {
+      state = { plan_id: data.plan_id, date: todayDate, ex_ids: currentExIds, completed_sets: {}, partial_sets: {} };
+      localStorage.setItem('workoutState', JSON.stringify(state));
+    }
+    window.currentWorkoutState = state;
+    window.currentWorkoutData = data.exercises;
+  }
+
+  // Calculate if the entire workout is already finished based on state
+  let isAllFinished = false;
+  if (data.exercises && data.exercises.length > 0) {
+    isAllFinished = data.exercises.every(ex => {
+      let comp = state.completed_sets[ex.id] || [];
+      return comp.length >= ex.sets;
+    });
   }
 
   return `
   <div class="page-head" style="margin-bottom: 20px;">
     <h1 style="margin-bottom:5px;">خطة التمارين الخاصة بك 🔥</h1>
-    <p style="color:var(--text-dim); margin:0;">${data.plan_name}</p>
+    <p style="color:var(--text-dim); margin:0;">${data.plan_name || ''}</p>
   </div>
   ${videoHtml}
+  ${pdfHtml}
 
   
   <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap:20px; padding-bottom:10px; width:100%;">

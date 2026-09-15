@@ -53,6 +53,10 @@ class ClientProfile(Base):
     nutrition_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)    # صورة النظام الغذائي
     nutrition_photo_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True) # تاريخ رفع الصورة
 
+    # Workout plan PDF/photo — ملف النظام التدريبي
+    workout_pdf_url: Mapped[str | None] = mapped_column(String(500), nullable=True)        # رابط الملف المرفوع
+    workout_pdf_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)     # تاريخ الرفع
+
     # Admin video — فيديو من الأدمن للعميل
     admin_video_url: Mapped[str | None] = mapped_column(String(500), nullable=True)    # رابط الفيديو
     admin_video_title: Mapped[str | None] = mapped_column(String(200), nullable=True)  # عنوان الفيديو
