@@ -1050,9 +1050,44 @@ async def upload_body_photos(
 
     if uploaded:
         profile.body_photo_date = datetime.utcnow()
+        # إضافة الصور كألبوم تطور جديد
+        from models.progress_photo import ProgressPhoto
+        progress = ProgressPhoto(
+            user_id=client_id,
+            photo_front=uploaded.get("front"),
+            photo_back=uploaded.get("back"),
+            photo_side=uploaded.get("side"),
+            date=datetime.utcnow()
+        )
+        db.add(progress)
 
     db.commit()
     return {"status": "ok", "uploaded": uploaded, "photo_date": profile.body_photo_date.strftime("%Y-%m-%d") if profile.body_photo_date else ""}
+
+
+@router.get("/clients/{client_id}/progress-history")
+def get_progress_history(client_id: int, db: Session = Depends(get_db)):
+    """جلب ألبوم صور التطور (التاريخ) للعميل"""
+    from models.progress_photo import ProgressPhoto
+    history = db.query(ProgressPhoto).filter(ProgressPhoto.user_id == client_id).order_by(ProgressPhoto.date.desc()).all()
+    return [{
+        "id": p.id,
+        "front": p.photo_front,
+        "back": p.photo_back,
+        "side": p.photo_side,
+        "date": p.date.strftime("%Y-%m-%d") if p.date else None
+    } for p in history]
+
+@router.delete("/progress-photos/{photo_id}")
+def delete_progress_photo(photo_id: int, db: Session = Depends(get_db)):
+    """حذف ألبوم صور من التطور"""
+    from models.progress_photo import ProgressPhoto
+    photo = db.query(ProgressPhoto).filter(ProgressPhoto.id == photo_id).first()
+    if not photo:
+        raise HTTPException(status_code=404, detail="الألبوم غير موجود")
+    db.delete(photo)
+    db.commit()
+    return {"status": "ok"}
 
 
 @router.post("/clients/{client_id}/medication-photo")

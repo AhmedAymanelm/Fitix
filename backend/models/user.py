@@ -28,6 +28,7 @@ class User(Base):
     sent_messages: Mapped[list["Message"]] = relationship(back_populates="sender", foreign_keys="Message.sender_id", cascade="all, delete-orphan")
     received_messages: Mapped[list["Message"]] = relationship(back_populates="receiver", foreign_keys="Message.receiver_id", cascade="all, delete-orphan")
     notifications: Mapped[list["Notification"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    progress_photos: Mapped[list["ProgressPhoto"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         return f"<User {self.username} ({self.role})>"

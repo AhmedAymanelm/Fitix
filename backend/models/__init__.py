@@ -8,6 +8,7 @@ from .inbody import InBodyReading
 from .fitness_test import FitnessTest
 from .message import Message
 from .notification import Notification, NotificationSettings, GymSettings
+from .progress_photo import ProgressPhoto
 
 __all__ = [
     "User",
@@ -26,4 +27,5 @@ __all__ = [
     "Notification",
     "NotificationSettings",
     "GymSettings",
+    "ProgressPhoto",
 ]

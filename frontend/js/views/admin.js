@@ -591,7 +591,7 @@ views['a-client-detail'] = async () => {
   const cid = window.currentClientId;
   
   // Fetch everything in parallel to eliminate waterfall loading delays
-  const [cRes, historyRes, planRes, workRes, workHistRes, notifsRes, nutPhotoRes, adminVideoRes] = await Promise.allSettled([
+  const [cRes, historyRes, planRes, workRes, workHistRes, notifsRes, nutPhotoRes, progressHistRes, adminVideoRes] = await Promise.allSettled([
     apiFetch('/admin/clients/' + cid),
     apiFetch('/inbody/client/' + cid),
     apiFetch('/admin/clients/' + cid + '/active-plan'),
@@ -599,6 +599,7 @@ views['a-client-detail'] = async () => {
     apiFetch('/workouts/history/' + cid),
     apiFetch('/notifications/client/' + cid),
     apiFetch('/workouts/nutrition-photo/' + cid),
+    apiFetch('/admin/clients/' + cid + '/progress-history').catch(() => []),
     apiFetch('/workouts/my-video').catch(() => null)  // admin fetches via different endpoint below
   ]);
   
@@ -611,6 +612,7 @@ views['a-client-detail'] = async () => {
   const workoutsHistory = workHistRes.status === 'fulfilled' ? workHistRes.value : [];
   const clientNotifs = notifsRes.status === 'fulfilled' ? notifsRes.value : [];
   const clientNutPhoto = (nutPhotoRes.status === 'fulfilled' && nutPhotoRes.value) ? nutPhotoRes.value : null;
+  const progressHistory = progressHistRes.status === 'fulfilled' ? progressHistRes.value : [];
 
   // جيب بيانات الفيديو للعميل
   let clientAdminVideo = null;
@@ -935,22 +937,28 @@ views['a-client-detail'] = async () => {
 
   <!-- Body Photos Tab -->
   <div class="tab-panel ${activeTab === 'tphotos' ? 'active' : ''}" id="tphotos">
-    <div class="section-title">📸 صور تقدم الجسم <span>الوش / الظهر / الجنب</span></div>
-    ${(c.body_photo_front || c.body_photo_back || c.body_photo_side) ? `
-    <div class="card" style="margin-bottom:20px">
-      <h3 style="color:var(--steel); margin-bottom:12px; font-size:14px">الصور الحالية ${c.body_photo_date ? '— رُفعت ' + c.body_photo_date : ''}</h3>
-      <div class="photos-upload-grid">
-        <div class="photo-slot">
-          ${c.body_photo_front ? `<img src="${c.body_photo_front}"><div class="photo-date-badge">📸 الوش</div>` : `<div class="photo-icon">👤</div><div class="photo-label">الوش</div>`}
+    <div class="section-title">📸 ألبوم صور التطور (History) <span>للمتابعة الداخلية (لا يظهر للعميل)</span></div>
+    
+    <div id="progressAlbumsContainer">
+      ${progressHistory.length > 0 ? progressHistory.map(p => `
+      <div class="card" style="margin-bottom:20px; border: 1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="color:var(--steel); font-size:14px">ألبوم يوم ${p.date}</h3>
+          <button class="btn btn-ghost" style="color:var(--danger); padding:4px 8px; font-size:12px; border:1px solid var(--danger);" onclick="deleteProgressAlbum(${p.id}, ${c.id})">🗑️ حذف الألبوم</button>
         </div>
-        <div class="photo-slot">
-          ${c.body_photo_back ? `<img src="${c.body_photo_back}"><div class="photo-date-badge">📸 الظهر</div>` : `<div class="photo-icon">🔄</div><div class="photo-label">الظهر</div>`}
+        <div class="photos-upload-grid">
+          <div class="photo-slot">
+            ${p.front ? `<img src="${p.front}" onclick="openImageModal('${p.front}')" style="cursor:zoom-in;"><div class="photo-date-badge">📸 الوش</div>` : `<div class="photo-icon" style="opacity:0.3">👤</div><div class="photo-label">لا يوجد</div>`}
+          </div>
+          <div class="photo-slot">
+            ${p.back ? `<img src="${p.back}" onclick="openImageModal('${p.back}')" style="cursor:zoom-in;"><div class="photo-date-badge">📸 الظهر</div>` : `<div class="photo-icon" style="opacity:0.3">🔄</div><div class="photo-label">لا يوجد</div>`}
+          </div>
+          <div class="photo-slot">
+            ${p.side ? `<img src="${p.side}" onclick="openImageModal('${p.side}')" style="cursor:zoom-in;"><div class="photo-date-badge">📸 الجنب</div>` : `<div class="photo-icon" style="opacity:0.3">👤</div><div class="photo-label">لا يوجد</div>`}
+          </div>
         </div>
-        <div class="photo-slot">
-          ${c.body_photo_side ? `<img src="${c.body_photo_side}"><div class="photo-date-badge">📸 الجنب</div>` : `<div class="photo-icon">👤</div><div class="photo-label">الجنب</div>`}
-        </div>
-      </div>
-    </div>` : ''}
+      </div>`).join('') : '<p style="color:var(--text-dim); font-size:13px; margin-bottom:20px; text-align:center; padding:20px; background:var(--surface-2); border-radius:12px;">لا يوجد ألبوم تطور محفوظ للعميل حتى الآن.</p>'}
+    </div>
     <div class="card">
       <h3 style="color:var(--lime); margin-bottom:16px; font-size:15px">📤 رفع صور جديدة</h3>
       <div class="photos-upload-grid">
@@ -3781,3 +3789,20 @@ async function adminDeleteClientVideo(clientId) {
     setTimeout(() => goView('a-client-detail'), 600);
   } catch(e) { toast('❌ ' + e.message); }
 }
+
+window.deleteProgressAlbum = async function(photoId, clientId) {
+  if (!confirm('متأكد إنك عاوز تحذف الألبوم ده؟')) return;
+  try {
+    const token = localStorage.getItem('token');
+    const res = await fetch(API_BASE + '/admin/progress-photos/' + photoId, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (!res.ok) throw new Error('فشل حذف الألبوم');
+    toast('✅ تم حذف الألبوم بنجاح');
+    window.currentClientTabId = 'tphotos';
+    goView('a-client-detail');
+  } catch(e) {
+    toast('❌ ' + e.message);
+  }
+};
