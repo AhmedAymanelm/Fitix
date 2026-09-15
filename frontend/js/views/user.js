@@ -1569,7 +1569,7 @@ views['u-nutrition'] = async () => {
   let nutritionPhoto = null;
   try { nutritionPhoto = await apiFetch('/workouts/my-nutrition-photo'); } catch(e) {}
 
-  if (!plan || !plan.meals || plan.meals.length === 0) {
+  if ((!plan || !plan.meals || plan.meals.length === 0) && (!nutritionPhoto || !nutritionPhoto.url)) {
     return `
     <div class="page-head"><h1>🥗 نظام التغذية</h1><p>خطتك الغذائية من الكابتن</p></div>
     <div style="text-align:center;padding:60px 20px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px">
@@ -1588,7 +1588,7 @@ views['u-nutrition'] = async () => {
   const today = new Date().toLocaleDateString('ar-EG', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
   // ── بناء الـ Cards بالديزاين المطلوب ──
-  const mealsCards = plan.meals.map(m => {
+  const mealsCards = (plan && plan.meals) ? plan.meals.map(m => {
     let parsed = null;
     try { parsed = JSON.parse(m.items); } catch (e) { }
     const alts = parsed?.alternatives || [];
@@ -1624,11 +1624,11 @@ views['u-nutrition'] = async () => {
         ${alts.length > 0 ? altsHtml : `<p style="color:var(--text-dim);font-size:13px">${m.items}</p>`}
       </div>
     </div>`;
-  });
+  }) : [];
 
   // ملاحظات للعميل (بدون ماكروز)
-  const clientNotes = plan.client_notes || plan.notes || '';
-  const workoutNotes = plan.workout_nutrition_notes || '';
+  const clientNotes = plan ? (plan.client_notes || plan.notes || '') : '';
+  const workoutNotes = plan ? (plan.workout_nutrition_notes || '') : '';
 
   return `
 
